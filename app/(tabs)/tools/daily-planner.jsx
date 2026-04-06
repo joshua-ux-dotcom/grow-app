@@ -1,14 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { View, Text, StyleSheet } from 'react-native';
 
-const DailyPlannerScreen = () => {
+export default function GoalsScreen() {
   return (
-    <View>
-      <Text>Daily Planner</Text>
+    <View style={styles.container}>
+      <Text style={styles.text}>Daily Planner Screen</Text>
     </View>
-  )
+  );
 }
 
-export default DailyPlannerScreen
-
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#06040a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    color: '#f4e7c5',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+});
