@@ -20,17 +20,16 @@ export default function ToolCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: '48%',
-    backgroundColor: '#0f0b16',
-    borderWidth: 1,
-    borderColor: '#2f2238',
-    borderRadius: 18,
-    paddingVertical: 22,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-    minHeight: 155,
-    justifyContent: 'flex-start',
-  },
+  width: '47%',
+  backgroundColor: '#0d0913',
+  borderWidth: 1,
+  borderColor: '#2d2234',
+  borderRadius: 20,
+  paddingVertical: 18,
+  paddingHorizontal: 16,
+  marginBottom: 14,
+  minHeight: 135,
+},
   iconWrapper: {
     width: 54,
     height: 54,
@@ -46,14 +45,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   title: {
-    color: '#f4e7c5',
-    fontSize: 19,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  description: {
-    color: '#b7a98b',
-    fontSize: 13,
-    lineHeight: 19,
-  },
+  color: '#f4e7c5',
+  fontSize: 17,
+  fontWeight: '700',
+  marginBottom: 6,
+},
+description: {
+  color: '#a89982',
+  fontSize: 12.5,
+  lineHeight: 18,
+},
 });

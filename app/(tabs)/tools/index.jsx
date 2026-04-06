@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 34,
-    paddingHorizontal: 4,
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 26,
+  paddingHorizontal: 4,
   },
   avatar: {
     width: 76,
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sectionHeader: {
-    marginBottom: 18,
-    paddingHorizontal: 4,
+  marginBottom: 14,
+  paddingHorizontal: 4,
   },
   sectionTitle: {
     color: '#f4e7c5',
