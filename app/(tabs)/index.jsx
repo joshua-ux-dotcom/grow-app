@@ -1,31 +1,55 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+// app/(tabs)/index.jsx
 
-const Home = () => {
+import { FlatList, StyleSheet, View, Dimensions } from 'react-native';
+import VideoOverlay from '../../components/ui/VideoOverlay';
+
+const { height, width } = Dimensions.get('window');
+
+const feedData = [
+  { id: '1' },
+  { id: '2' },
+  { id: '3' },
+  { id: '4' },
+];
+
+export default function FeedScreen() {
   return (
-    <View style={styles.screen}>
-      <View style={styles.container}>
-        <Text style={styles.title}>GROW</Text>
-      </View>  
-    </View>  
-  )
+    <FlatList
+      data={feedData}
+      keyExtractor={(item) => item.id}
+      pagingEnabled
+      showsVerticalScrollIndicator={false}
+      snapToInterval={height}
+      decelerationRate="fast"
+      renderItem={() => (
+        <View style={styles.page}>
+          <View style={styles.background} />
+          <View style={styles.overlayDark} />
+          <VideoOverlay />
+        </View>
+      )}
+    />
+  );
 }
 
-export default Home
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: 60,
+  page: {
+    width,
+    height,
+    backgroundColor: '#050505',
   },
-  container: {
-      flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    title: {
-      fontSize: 40,
-      textAlign: 'center',
-    },
-})
+
+  background: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0A0A0A',
+  },
+
+  overlayDark: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+});
