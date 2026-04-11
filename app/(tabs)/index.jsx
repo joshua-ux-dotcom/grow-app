@@ -1,13 +1,14 @@
 // app/(tabs)/index.jsx
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import {
   FlatList,
   StyleSheet,
   View,
   Dimensions,
-  TouchableWithoutFeedback,
+  Pressable,
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import VideoOverlay from '../../components/ui/VideoOverlay';
 
@@ -32,50 +33,62 @@ const feedData = [
   },
 ];
 
-function FeedItem({ item, isActive }) {
-  const [isPaused, setIsPaused] = useState(false);
+function FeedItem({ item, isActive, isFeedFocused }) {
+  const [isHolding, setIsHolding] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const holdTimeout = useRef(null);
 
   const player = useVideoPlayer(item.source, (player) => {
     player.loop = true;
   });
 
-  const handlePress = () => {
-    if (!isActive) return;
+  useEffect(() => {
+    const shouldPlay = isActive && isFeedFocused && !isHolding;
 
-    if (isPaused) {
+    player.muted = isMuted;
+
+    if (shouldPlay) {
       player.play();
-      setIsPaused(false);
     } else {
       player.pause();
-      setIsPaused(true);
     }
-  };
-
-  if (isActive && !isPaused) {
-    player.play();
-  } else {
-    player.pause();
-  }
+  }, [isActive, isFeedFocused, isHolding, isMuted, player]);
 
   return (
-    <TouchableWithoutFeedback onPress={handlePress}>
-      <View style={styles.page}>
-        <VideoView
-          style={styles.video}
-          player={player}
-          contentFit="cover"
-          nativeControls={false}
-        />
+    <Pressable
+      style={styles.page}
+      onPressIn={() => {
+        holdTimeout.current = setTimeout(() => {
+          setIsHolding(true);
+        }, 180);
+      }}
+      onPressOut={() => {
+        clearTimeout(holdTimeout.current);
 
-        <View style={styles.overlayDark} />
-        <VideoOverlay />
-      </View>
-    </TouchableWithoutFeedback>
+        if (isHolding) {
+          setIsHolding(false);
+        } else {
+          setIsMuted((prev) => !prev);
+        }
+      }}
+    >
+      <VideoView
+        style={styles.video}
+        player={player}
+        contentFit="cover"
+        nativeControls={false}
+      />
+
+      <View style={styles.overlayDark} />
+      <VideoOverlay />
+    </Pressable>
   );
 }
 
 export default function FeedScreen() {
   const [activeVideoId, setActiveVideoId] = useState(feedData[0].id);
+  const isFocused = useIsFocused();
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80,
@@ -89,9 +102,13 @@ export default function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item }) => (
-      <FeedItem item={item} isActive={item.id === activeVideoId} />
+      <FeedItem
+        item={item}
+        isActive={item.id === activeVideoId}
+        isFeedFocused={isFocused}
+      />
     ),
-    [activeVideoId]
+    [activeVideoId, isFocused]
   );
 
   return (
@@ -100,11 +117,17 @@ export default function FeedScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       pagingEnabled
-      showsVerticalScrollIndicator={false}
       snapToInterval={height}
+      snapToAlignment="start"
+      disableIntervalMomentum
       decelerationRate="fast"
+      showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
+      windowSize={3}
+      initialNumToRender={2}
+      maxToRenderPerBatch={2}
+      removeClippedSubviews
     />
   );
 }
