@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 
 import InfoCard from '../../components/feedback/InfoCard';
@@ -220,11 +220,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
-  },
-  heartIcon: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
   },
   topCardsContainer: {
     flexDirection: 'row',

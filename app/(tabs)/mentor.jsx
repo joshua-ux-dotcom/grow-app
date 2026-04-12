@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingVertical: 60,
+    backgroundColor: 'black',
   },
   container: {
       flex: 1,
@@ -28,5 +29,6 @@ const styles = StyleSheet.create({
     title: {
       fontSize: 30,
       textAlign: 'center',
+      color: 'white',
     },
 })
