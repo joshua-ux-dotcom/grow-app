@@ -1,6 +1,5 @@
 // components/ui/VideoOverlay.jsx
 
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -12,41 +11,62 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 
 const { height } = Dimensions.get('window');
 
-export default function VideoOverlay() {
-  const [saved, setSaved] = useState(false);
-
+export default function VideoOverlay({
+  saved = false,
+  onToggleSaved = () => {},
+  isPaused = false,
+  onResume = () => {},
+  onMuteAndResume = () => {},
+  isMuted = false,
+}) {
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="box-none">
       <Text style={styles.logo}>GROW</Text>
 
-        <View style={styles.rightSide}>
-            <TouchableOpacity style={styles.circle}>
-                <View style={styles.innerCircle} />
-            </TouchableOpacity>
+      <View style={styles.rightSide} pointerEvents="box-none">
+        {[1, 2, 3, 4].map((item) => (
+          <TouchableOpacity key={item} style={styles.circle} activeOpacity={0.8}>
+            <View style={styles.innerCircle} />
+          </TouchableOpacity>
+        ))}
 
-            <TouchableOpacity style={styles.circle}>
-                <View style={styles.innerCircle} />
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={onToggleSaved}
+          activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          {saved ? (
+            <Ionicons name="bookmark" size={31} color="#D4AF37" />
+          ) : (
+            <Feather name="bookmark" size={31} color="#D4AF37" />
+          )}
+        </TouchableOpacity>
+      </View>
 
-            <TouchableOpacity style={styles.circle}>
-                <View style={styles.innerCircle} />
-            </TouchableOpacity>
+      {isPaused && (
+        <View style={styles.pauseOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.muteResumeButton}
+            onPress={onMuteAndResume}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name={isMuted ? 'volume-mute' : 'volume-high'}
+              size={18}
+              color="#fff"
+            />
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.circle}>
-                <View style={styles.innerCircle} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.saveButton}
-                onPress={() => setSaved(!saved)}
-                >
-                {saved ? (
-                    <Ionicons name="bookmark" size={32} color="#D4AF37" />
-                ) : (
-                    <Feather name="bookmark" size={30} color="#D4AF37" />
-                )}
-            </TouchableOpacity>
-       </View>
+          <TouchableOpacity
+            style={styles.playButton}
+            onPress={onResume}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="play" size={34} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -64,7 +84,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     letterSpacing: 4,
     fontWeight: '600',
-    fontFamily: undefined,
     textShadowColor: 'rgba(212,175,55,0.35)',
     textShadowOffset: {
       width: 0,
@@ -105,6 +124,34 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+  },
+
+  pauseOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    transform: [{ translateY: -72 }],
+  },
+
+  muteResumeButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginBottom: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+
+  playButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingLeft: 4,
   },
 });
