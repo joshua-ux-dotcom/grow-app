@@ -18,6 +18,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import VideoOverlay from '../../components/ui/VideoOverlay';
+import { supabase } from '../../lib/supabase';
 
 const { height, width } = Dimensions.get('window');
 
@@ -26,29 +27,6 @@ const LONG_PRESS_DELAY = 120;
 const PROGRESS_AREA_SIDE = 18;
 const PROGRESS_AREA_BOTTOM = 65;
 const THUMB_SIZE = 10;
-
-const initialFeedData = [
-  {
-    id: '1',
-    source: require('../../assets/videos/Id1.mp4'),
-    saved: false,
-  },
-  {
-    id: '2',
-    source: require('../../assets/videos/Id2.mp4'),
-    saved: false,
-  },
-  {
-    id: '3',
-    source: require('../../assets/videos/Id3.mp4'),
-    saved: false,
-  },
-  {
-    id: '4',
-    source: require('../../assets/videos/Id4.mp4'),
-    saved: false,
-  },
-];
 
 function FeedItem({
   item,
@@ -192,7 +170,7 @@ function FeedItem({
       <VideoView
         style={styles.video}
         player={player}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
       />
 
@@ -260,8 +238,8 @@ function FeedItem({
 }
 
 export default function FeedScreen() {
-  const [feedData, setFeedData] = useState(initialFeedData);
-  const [activeVideoId, setActiveVideoId] = useState(initialFeedData[0].id);
+  const [feedData, setFeedData] = useState([]);
+  const [activeVideoId, setActiveVideoId] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
 
@@ -272,6 +250,34 @@ export default function FeedScreen() {
   const dragStartOffsetY = useRef(0);
 
   const FLICK_THRESHOLD = 28;
+
+  useEffect(() => {
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('is_active', true);
+
+    if (error) {
+      console.log('Fehler beim Laden der Videos:', error);
+      return;
+    }
+
+    const formattedVideos = data.map((video) => ({
+      id: video.id,
+      source: video.video_url,
+      saved: false,
+    }));
+
+    setFeedData(formattedVideos);
+
+    if (formattedVideos.length > 0) {
+      setActiveVideoId(formattedVideos[0].id);
+    }
+  };
+
+  loadVideos();
+}, []);
 
   const handleToggleSaved = useCallback((id) => {
     setFeedData((prevData) =>
@@ -367,6 +373,9 @@ const handleScrollEndDrag = useCallback(
     ),
     [activeVideoId, isFocused, isMuted, handleToggleSaved, isScrolling]
   );
+  if (feedData.length === 0) {
+    return <View style={{ flex: 1, backgroundColor: '#050505' }} />;
+  }
 
   return (
     <FlatList
