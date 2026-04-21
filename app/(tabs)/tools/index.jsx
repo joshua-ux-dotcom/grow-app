@@ -97,7 +97,14 @@ export default function ToolsScreen() {
           </View>
 
           <View style={styles.pointsBox}>
-            <Text style={styles.pointsValue}>18.760</Text>
+            <View style={styles.pointsRow}>
+              <View style={styles.coinPlaceholder}>
+                <Text style={styles.coinStar}>★</Text>
+              </View>
+
+              <Text style={styles.pointsValue}>18.760</Text>
+            </View>
+
             <Text style={styles.pointsLabel}>GROW Points</Text>
           </View>
         </View>
@@ -224,7 +231,36 @@ const styles = StyleSheet.create({
   pointsLabel: {
     color: '#9c8f78',
     fontSize: 9,
-    marginTop: 1,
+    marginTop: -7,
+  },
+  pointsRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  },
+  coinPlaceholder: {
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  borderWidth: 1.5,
+  borderColor: '#a88446',
+  backgroundColor: '#120d19',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 8,
+  marginTop: 5,
+  shadowColor: '#d6a34d',
+  shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+  shadowOpacity: 0.35,
+  shadowRadius: 6,
+  },
+  coinStar: {
+  color: '#f2dfb4',
+  fontSize: 12,
+  fontWeight: '700',
+  marginTop: -1,
   },
   sectionHeader: {
     marginBottom: 12,
