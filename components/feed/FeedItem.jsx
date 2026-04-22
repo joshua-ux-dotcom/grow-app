@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import VideoOverlay from '../ui/VideoOverlay';
+import { COLORS } from '../../constants/colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   page: {
     width,
     height,
-    backgroundColor: '#050505',
+    backgroundColor: COLORS.background,
   },
 
   video: {
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.22)',
+    backgroundColor: COLORS.overlayDark,
     zIndex: 1,
   },
 
@@ -281,14 +282,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 2.5,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: COLORS.progressTrack,
     overflow: 'hidden',
   },
 
   progressFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#D4AF37',
+    backgroundColor: COLORS.gold,
   },
 
   progressThumb: {
@@ -297,8 +298,8 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: 999,
-    backgroundColor: '#D4AF37',
-    shadowColor: '#000',
+    backgroundColor: COLORS.gold,
+    shadowColor: COLORS.black,
     shadowOpacity: 0.22,
     shadowRadius: 4,
     shadowOffset: {

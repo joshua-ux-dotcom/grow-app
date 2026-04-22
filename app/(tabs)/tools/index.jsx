@@ -8,8 +8,12 @@ import {
 } from '@expo/vector-icons';
 
 import ToolCard from '../../../components/ui/ToolCard';
-import { supabase } from '../../../lib/supabase';
+import { getProfileUsername } from '../../../lib/profiles';
+import { tools } from '../../../data/tools';
+import { COLORS } from '../../../constants/colors';
 
+//Die Test_User_Id später nicht mehr statisch machen
+//Daran denken nach der Erstellung von Login die Policie zu löschen!
 const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
 function TrackerBox({ value, label }) {
@@ -26,15 +30,10 @@ export default function ToolsScreen() {
 
   useEffect(() => {
     async function loadProfile() {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', TEST_USER_ID)
-        .single();
-
-      if (!error && data) {
-        setUsername(data.username);
-      } else {
+      try {
+        const username = await getProfileUsername(TEST_USER_ID);
+        setUsername(username);
+      } catch (error) {
         console.log('Fehler beim Laden des Profils:', error);
       }
     }
@@ -42,68 +41,27 @@ export default function ToolsScreen() {
     loadProfile();
   }, []);
 
-  const tools = [
-    {
-      title: 'To-Do',
-      description: 'Plane deinen Tag.',
-      icon: <Ionicons name="checkmark-outline" size={20} color="#f2dfb4" />,
-      onPress: () => router.push('/tools/todo'),
-    },
-    {
-      title: 'Trainingsplan',
-      description: 'Erstelle Trainingstage.',
-      icon: (
+  function renderToolIcon(tool) {
+    if (tool.type === 'Ionicons') {
+      return <Ionicons name={tool.name} size={20} color={tool.color} />;
+    }
+
+    if (tool.type === 'MaterialCommunityIcons') {
+      return (
         <MaterialCommunityIcons
-          name="dumbbell"
+          name={tool.name}
           size={20}
-          color="#f2dfb4"
+          color={tool.color}
         />
-      ),
-      onPress: () => router.push('/tools/training-plan'),
-    },
-    {
-      title: 'Ziele',
-      description: 'Setze große Ziele.',
-      icon: <Feather name="target" size={20} color="#f2dfb4" />,
-      onPress: () => router.push('/tools/goals'),
-    },
-    {
-      title: 'Gewohnheiten',
-      description: 'Baue Streaks auf.',
-      icon: <Ionicons name="flame-outline" size={20} color="#f2dfb4" />,
-      onPress: () => router.push('/tools/habits'),
-    },
-    {
-      title: 'Deep Work',
-      description: 'Fokus ohne Ablenkungen',
-      icon: <Feather name="clock" size={20} color="#f2dfb4" />,
-      onPress: () => router.push('/tools/deep-work'),
-    },
-    {
-      title: 'Tagesplaner',
-      description: 'Strukturiere deinen Tag.',
-      icon: <Ionicons name="calendar-outline" size={20} color="#f2dfb4" />,
-      onPress: () => router.push('/tools/daily-planner'),
-    },
-    {
-      title: 'In Bearbeitung',
-      description: 'Bleib dran – hier entsteht etwas Großes.',
-      icon: <Feather name="tool" size={20} color="#d6d0db" />,
-      disabled: true,
-    },
-    {
-      title: 'In Bearbeitung',
-      description: 'Bleib dran – hier entsteht etwas Großes.',
-      icon: <Feather name="tool" size={20} color="#d6d0db" />,
-      disabled: true,
-    },
-    {
-      title: 'In Bearbeitung',
-      description: 'Bleib dran – hier entsteht etwas Großes.',
-      icon: <Feather name="tool" size={20} color="#d6d0db" />,
-      disabled: true,
-    },
-  ];
+      );
+    }
+
+    if (tool.type === 'Feather') {
+      return <Feather name={tool.name} size={20} color={tool.color} />;
+    }
+
+    return null;
+  }
 
   return (
     <View style={styles.screen}>
@@ -144,10 +102,10 @@ export default function ToolsScreen() {
           {tools.map((tool, index) => (
             <ToolCard
               key={`${tool.title}-${index}`}
-              icon={tool.icon}
+              icon={renderToolIcon(tool)}
+              onPress={tool.disabled ? undefined : () => router.push(tool.route)}
               title={tool.title}
               description={tool.description}
-              onPress={tool.onPress}
               disabled={tool.disabled}
             />
           ))}
@@ -156,7 +114,7 @@ export default function ToolsScreen() {
         <View style={styles.mentorCard}>
           <View style={styles.mentorLeft}>
             <View style={styles.mentorIconWrap}>
-              <Ionicons name="sparkles-outline" size={28} color="#f2dfb4" />
+              <Ionicons name="sparkles-outline" size={28} color={COLORS.softGold} />
             </View>
 
             <View style={styles.mentorTextBox}>
@@ -193,7 +151,7 @@ export default function ToolsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.black,
   },
   content: {
     flex: 1,
@@ -237,7 +195,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   accountName: {
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     fontSize: 20,
     fontWeight: '700',
   },
@@ -248,12 +206,12 @@ const styles = StyleSheet.create({
     marginBottom: -2,
   },  
   pointsValue: {
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     fontSize: 18,
     fontWeight: '700',
   },
   pointsLabel: {
-    color: '#9c8f78',
+    color: COLORS.mutedGold,
     fontSize: 9,
     marginTop: -7,
   },
@@ -281,7 +239,7 @@ const styles = StyleSheet.create({
   shadowRadius: 6,
   },
   coinStar: {
-  color: '#f2dfb4',
+  color: COLORS.softGold,
   fontSize: 12,
   fontWeight: '700',
   marginTop: -1,
@@ -291,7 +249,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   sectionTitle: {
-    color: '#f4e7c5',
+    color: COLORS.paleGold,
     fontSize: 22,
     fontWeight: '700',
     marginBottom: 4,
@@ -312,8 +270,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#7f6236',
-    backgroundColor: '#0d0913',
+    borderColor: COLORS.goldBorder,
+    backgroundColor: COLORS.darkCard,
     paddingVertical: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -332,7 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#7f6236',
-    backgroundColor: '#120d19',
+    backgroundColor: COLORS.darkCard2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -341,7 +299,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mentorTitle: {
-    color: '#f4e7c5',
+    color: COLORS.paleGold,
     fontSize: 13.5,
     fontWeight: '700',
     marginBottom: 2,
@@ -360,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#120d19',
   },
   mentorButtonText: {
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     fontSize: 9.5,
     fontWeight: '700',
   },
@@ -377,7 +335,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   trackerSubtitle: {
-    color: '#9c8f78',
+    color: COLORS.mutedGold,
     fontSize: 11,
     marginBottom: 10,
   },
@@ -399,7 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   trackerValue: {
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
