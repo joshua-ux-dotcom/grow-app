@@ -10,6 +10,8 @@ import {
   Dimensions,
   StyleSheet,
   Image,
+  Text,
+  Pressable,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import FeedItem from '../../components/feed/FeedItem';
@@ -22,6 +24,8 @@ export default function FeedScreen() {
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [feedError, setFeedError] = useState(null);
+  const [hasNoVideos, setHasNoVideos] = useState(false);
 
   const isFocused = useIsFocused();
 
@@ -31,25 +35,36 @@ export default function FeedScreen() {
 
   const FLICK_THRESHOLD = 28;
 
-  useEffect(() => {
-    const loadVideos = async () => {
-      try {
-        const videos = await getActiveVideos();
-        setFeedData(videos);
+  const loadVideos = useCallback(async () => {
+    try {
+      setFeedError(null);
+      setHasNoVideos(false);
+      setIsInitialLoading(true);
+      
+      const videos = await getActiveVideos();
 
-        if (videos.length > 0) {
-          setActiveVideoId(videos[0].id);
-        } else {
-          setIsInitialLoading(false);
-        }
-      } catch (error) {
-        console.log('Fehler beim Laden der Videos:', error);
+      if (!videos || videos.length === 0) {
+        setFeedData([])
+        setActiveVideoId(null);
+        setHasNoVideos(true);
         setIsInitialLoading(false);
+        return;
       }
-    };
 
-    loadVideos();
+      setFeedData(videos);
+      setActiveVideoId(videos[0].id);  
+    } catch (error) {
+      console.log('Fehler beim Laden der Videos:', error);
+      setFeedData([])
+      setActiveVideoId(null);
+      setFeedError('Videos konnten nicht geladen werden.');
+      setIsInitialLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
 
   const handleInitialVideoReady = useCallback(() => {
     setIsInitialLoading(false);
@@ -158,6 +173,34 @@ export default function FeedScreen() {
     ]
   );
 
+  if (feedError) {
+    return (
+      <View style={styles.stateContainer}>
+        <Text style={styles.stateTitle}>Fehler</Text>
+        <Text style={styles.stateText}>{feedError}</Text>
+
+        <Pressable style={styles.stateButton} onPress={loadVideos}>
+          <Text style={styles.stateButtonText}>Erneut versuchen</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (hasNoVideos) {
+    return (
+      <View style={styles.stateContainer}>
+        <Text style={styles.stateTitle}>Noch keine Videos</Text>
+        <Text style={styles.stateText}>
+          Aktuell sind keine aktiven Videos verfügbar.
+        </Text>
+
+        <Pressable style={styles.stateButton} onPress={loadVideos}>
+          <Text style={styles.stateButtonText}>Neu laden</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {feedData.length > 0 && (
@@ -218,5 +261,45 @@ const styles = StyleSheet.create({
   loadingLogo: {
     width: 180,
     height: 180,
+  },
+    loadingLogo: {
+    width: 180,
+    height: 180,
+  },
+
+  stateContainer: {
+    flex: 1,
+    backgroundColor: '#050505',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+
+  stateTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+
+  stateText: {
+    color: '#9c8f78',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  stateButton: {
+    marginTop: 22,
+    backgroundColor: '#D4AF37',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+
+  stateButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

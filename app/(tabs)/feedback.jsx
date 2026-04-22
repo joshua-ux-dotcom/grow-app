@@ -2,41 +2,182 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+ StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 
 import InfoCard from '../../components/feedback/InfoCard';
 import FeedbackTypeButton from '../../components/feedback/FeedbackTypeButton';
 import ImportanceButton from '../../components/feedback/ImportanceButton';
+import { supabase } from '../../lib/supabase';
 
 export default function FeedbackScreen() {
   const [selectedType, setSelectedType] = useState('Idee / Vorschlag');
   const [selectedImportance, setSelectedImportance] = useState(4);
   const [text, setText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [sending, setSending] = useState(false);
 
   const feedbackTypes = ['Idee / Vorschlag', 'Bug melden', 'Lob & Dank'];
+  const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
-  const handleSend = () => {
+  const handlePickImage = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Berechtigung nötig',
+          'Bitte erlaube den Zugriff auf deine Fotos.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+
+      setSelectedImage({
+        uri: asset.uri,
+        base64: asset.base64,
+        mimeType: asset.mimeType || 'image/jpeg',
+        fileName: asset.fileName || `feedback-${Date.now()}.jpg`,
+      });
+    } catch (error) {
+      Alert.alert('Fehler', 'Bild konnte nicht ausgewählt werden.');
+    }
+  };
+
+  const uploadFeedbackImage = async (userId) => {
+    if (!selectedImage) return { imageUrl: null, imagePath: null };
+
+    const fileExt = selectedImage.fileName.split('.').pop() || 'jpg';
+    const safeUserId = userId || 'anonymous';
+    const filePath = `${safeUserId}/${Date.now()}.${fileExt}`;
+
+    const arrayBuffer = decode(selectedImage.base64);
+
+    const { error: uploadError } = await supabase.storage
+      .from('feedback-images')
+      .upload(filePath, arrayBuffer, {
+        contentType: selectedImage.mimeType,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('feedback-images')
+      .getPublicUrl(filePath);
+
+    return {
+      imageUrl: data.publicUrl,
+      imagePath: filePath,
+    };
+  };
+
+  const handleSend = async () => {
     if (!text.trim()) {
       Alert.alert('Hinweis', 'Bitte schreibe zuerst dein Feedback.');
       return;
     }
 
-    Alert.alert('Feedback gesendet', 'Danke für dein Feedback.');
+    try {
+      setSending(true);
 
-    setText('');
-    setSelectedType('Idee / Vorschlag');
-    setSelectedImportance(4);
-  };
+      const userId = TEST_USER_ID;
 
-  const handleUpload = () => {
-    Alert.alert('Screenshot Upload', 'Die Upload-Funktion bauen wir als Nächstes.');
+      let imageUrl = null;
+      let imagePath = null;
+
+      if (selectedImage) {
+        const uploadResult = await uploadFeedbackImage(userId);
+        imageUrl = uploadResult.imageUrl;
+        imagePath = uploadResult.imagePath;
+      }
+
+      const { error: feedbackError } = await supabase.from('feedback').insert({
+        user_id: userId,
+        feedback_type: selectedType,
+        importance: selectedImportance,
+        message: text.trim(),
+        image_url: imageUrl,
+        image_path: imagePath,
+      });
+
+      if (feedbackError) {
+        throw feedbackError;
+      }
+
+      const { data: profile, error: profileFetchError } = await supabase
+        .from('profiles')
+        .select('grow_points')
+        .eq('id', userId)
+        .single();
+
+      if (profileFetchError) {
+        throw profileFetchError;
+      }
+
+      const currentGrowPoints = profile?.grow_points ?? 0;
+
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          grow_points: currentGrowPoints + 5,
+        })
+        .eq('id', userId);
+
+      if (profileUpdateError) {
+        throw profileUpdateError;
+      }
+
+      const { error: logError } = await supabase
+        .from('grow_points_log')
+        .insert({
+          user_id: userId,
+          points: 5,
+          reason: 'feedback_sent',
+        });
+
+      if (logError) {
+        throw logError;
+      }
+
+      setText('');
+      setSelectedImage(null);
+      setSelectedType('Idee / Vorschlag');
+      setSelectedImportance(4);
+
+      Alert.alert(
+        'Erfolg',
+        'Dein Feedback wurde gespeichert. Du hast 5 Grow Points erhalten.'
+      );
+    } catch (error) {
+      console.log('Fehler beim Senden von Feedback:', error);
+      Alert.alert('Fehler', 'Feedback konnte nicht gesendet werden.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -119,7 +260,7 @@ export default function FeedbackScreen() {
         </Text>
 
         <View style={styles.importanceRow}>
-          {[1, 2, 3, 4, 5].map((item) => (
+          {[1, 2, 3, 4].map((item) => (
             <ImportanceButton
               key={item}
               value={item}
@@ -141,22 +282,43 @@ export default function FeedbackScreen() {
 
         <TouchableOpacity
           style={styles.uploadBox}
-          onPress={handleUpload}
+          onPress={handlePickImage}
           activeOpacity={0.85}
         >
           <Feather name="image" size={22} color="#D4AF37" />
-          <Text style={styles.uploadTitle}>Bild hinzufügen</Text>
-          <Text style={styles.uploadSubtext}>PNG, JPG bis 10 MB</Text>
+          <Text style={styles.uploadTitle}>
+            {selectedImage ? 'Bild ändern' : 'Bild hinzufügen'}
+          </Text>
+          <Text style={styles.uploadSubtext}>PNG, JPG bis 5 MB</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={handleSend}
-          activeOpacity={0.9}
-        >
+        {selectedImage && (
+          <View style={styles.previewWrap}>
+            <Image
+              source={{ uri: selectedImage.uri }}
+              style={styles.previewImage}
+            />
+
+            <TouchableOpacity
+              onPress={() => setSelectedImage(null)}
+              style={styles.removeImageButton}
+            >
+              <Text style={styles.removeImageText}>Bild entfernen</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+       <TouchableOpacity
+        style={[styles.sendButton, sending && { opacity: 0.7 }]}
+        onPress={handleSend}
+        disabled={sending}
+      >
+        {sending ? (
+          <ActivityIndicator color="#000" />
+        ) : (
           <Text style={styles.sendButtonText}>Feedback senden</Text>
-          <Ionicons name="paper-plane-outline" size={18} color="#111111" />
-        </TouchableOpacity>
+        )}
+      </TouchableOpacity>
 
         <Text style={styles.footerText}>
           Danke, dass du Grow besser machst. 🙏
@@ -289,6 +451,49 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     backgroundColor: '#110D16',
   },
+  imageSection: {
+    marginTop: 16,
+    marginBottom: 20,
+  },
+
+  imageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#7f6236',
+    borderRadius: 12,
+    backgroundColor: '#120d19',
+  },
+
+  imageButtonText: {
+    color: '#f2dfb4',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  previewWrap: {
+    marginTop: 12,
+  },
+
+  previewImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+  },
+
+  removeImageButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+
+  removeImageText: {
+    color: '#d6d0db',
+    fontSize: 13,
+  },
+
   uploadTitle: {
     color: '#F2D37A',
     fontSize: 14,
