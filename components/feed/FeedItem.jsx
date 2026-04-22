@@ -3,6 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from 'react';
 import {
   View,
@@ -30,6 +31,7 @@ export default function FeedItem({
   isMuted,
   setIsMuted,
   onToggleSaved,
+  onVideoReady,
 }) {
   const [isHolding, setIsHolding] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -37,6 +39,8 @@ export default function FeedItem({
   const [duration, setDuration] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
+
+  const hasReportedReady = useRef(false);
 
   const player = useVideoPlayer(item.source, (playerInstance) => {
     playerInstance.loop = true;
@@ -167,6 +171,12 @@ export default function FeedItem({
         player={player}
         contentFit="contain"
         nativeControls={false}
+        onFirstFrameRender={() => {
+          if (!hasReportedReady.current) {
+            hasReportedReady.current = true;
+            onVideoReady?.();
+          }
+        }}
       />
 
       <Pressable

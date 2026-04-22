@@ -1,5 +1,3 @@
-// app/(tabs)/index.jsx
-
 import {
   useCallback,
   useRef,
@@ -10,6 +8,8 @@ import {
   FlatList,
   View,
   Dimensions,
+  StyleSheet,
+  Image,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import FeedItem from '../../components/feed/FeedItem';
@@ -21,6 +21,7 @@ export default function FeedScreen() {
   const [feedData, setFeedData] = useState([]);
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const isFocused = useIsFocused();
 
@@ -38,13 +39,20 @@ export default function FeedScreen() {
 
         if (videos.length > 0) {
           setActiveVideoId(videos[0].id);
+        } else {
+          setIsInitialLoading(false);
         }
       } catch (error) {
         console.log('Fehler beim Laden der Videos:', error);
+        setIsInitialLoading(false);
       }
     };
 
     loadVideos();
+  }, []);
+
+  const handleInitialVideoReady = useCallback(() => {
+    setIsInitialLoading(false);
   }, []);
 
   const handleToggleSaved = useCallback((id) => {
@@ -106,7 +114,10 @@ export default function FeedScreen() {
       });
 
       currentIndexRef.current = targetIndex;
-      setActiveVideoId(feedData[targetIndex].id);
+
+      if (feedData[targetIndex]) {
+        setActiveVideoId(feedData[targetIndex].id);
+      }
     },
     [feedData]
   );
@@ -125,7 +136,7 @@ export default function FeedScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }) => (
+    ({ item, index }) => (
       <FeedItem
         item={item}
         isActive={item.id === activeVideoId}
@@ -133,40 +144,79 @@ export default function FeedScreen() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         onToggleSaved={() => handleToggleSaved(item.id)}
+        onVideoReady={
+          index === 0 ? handleInitialVideoReady : undefined
+        }
       />
     ),
-    [activeVideoId, isFocused, isMuted, handleToggleSaved]
+    [
+      activeVideoId,
+      isFocused,
+      isMuted,
+      handleToggleSaved,
+      handleInitialVideoReady,
+    ]
   );
-
-  if (feedData.length === 0) {
-    return <View style={{ flex: 1, backgroundColor: '#050505' }} />;
-  }
 
   return (
-    <FlatList
-      ref={flatListRef}
-      data={feedData}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-      extraData={[feedData]}
-      decelerationRate="fast"
-      bounces={false}
-      overScrollMode="never"
-      showsVerticalScrollIndicator={false}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-      onScrollBeginDrag={handleScrollBeginDrag}
-      onScrollEndDrag={handleScrollEndDrag}
-      onMomentumScrollEnd={handleMomentumScrollEnd}
-      windowSize={5}
-      initialNumToRender={3}
-      maxToRenderPerBatch={3}
-      removeClippedSubviews={false}
-      getItemLayout={(_, index) => ({
-        length: height,
-        offset: height * index,
-        index,
-      })}
-    />
+    <View style={styles.container}>
+      {feedData.length > 0 && (
+        <FlatList
+          ref={flatListRef}
+          data={feedData}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          extraData={feedData}
+          decelerationRate="fast"
+          bounces={false}
+          overScrollMode="never"
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          onScrollEndDrag={handleScrollEndDrag}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+          windowSize={5}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          removeClippedSubviews={false}
+          getItemLayout={(_, index) => ({
+            length: height,
+            offset: height * index,
+            index,
+          })}
+        />
+      )}
+
+      {isInitialLoading && (
+        <View style={styles.loadingOverlay}>
+          <Image
+            source={require('../../assets/images/grow-loading.jpeg')}
+            style={styles.loadingLogo}
+            resizeMode="contain"
+          />
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#050505',
+  },
+
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#050505',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+
+  loadingLogo: {
+    width: 180,
+    height: 180,
+  },
+});
