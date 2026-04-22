@@ -6,17 +6,22 @@ import {
   MaterialCommunityIcons,
   Feather,
 } from '@expo/vector-icons';
-
 import { useFocusEffect } from '@react-navigation/native';
+
 import ToolCard from '../../../components/ui/ToolCard';
 import { getProfileUsername } from '../../../features/profile/services/profiles';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
 
-//Die Test_User_Id später nicht mehr statisch machen
-//Daran denken nach der Erstellung von Login die Policie zu löschen!
 const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
+
+const TRACKER_ITEMS = [
+  { value: '7', label: 'Tage Streak' },
+  { value: '68%', label: 'Tagesziele' },
+  { value: '24:37', label: 'Deep Work' },
+  { value: '5.432', label: 'Schritte' },
+];
 
 function TrackerBox({ value, label }) {
   return (
@@ -27,56 +32,66 @@ function TrackerBox({ value, label }) {
   );
 }
 
+function renderToolIcon(tool) {
+  if (tool.type === 'Ionicons') {
+    return <Ionicons name={tool.name} size={20} color={tool.color} />;
+  }
+
+  if (tool.type === 'MaterialCommunityIcons') {
+    return (
+      <MaterialCommunityIcons
+        name={tool.name}
+        size={20}
+        color={tool.color}
+      />
+    );
+  }
+
+  if (tool.type === 'Feather') {
+    return <Feather name={tool.name} size={20} color={tool.color} />;
+  }
+
+  return null;
+}
+
+async function loadProfileData(userId) {
+  const username = await getProfileUsername(userId);
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('grow_points')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    username,
+    growPoints: data?.grow_points ?? 0,
+  };
+}
+
 export default function ToolsScreen() {
   const [username, setUsername] = useState('Grower');
   const [growPoints, setGrowPoints] = useState(0);
 
   const loadProfile = useCallback(async () => {
     try {
-      const username = await getProfileUsername(TEST_USER_ID);
-      setUsername(username);
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('grow_points')
-        .eq('id', TEST_USER_ID)
-        .single();
-
-      if (error) throw error;
-
-      setGrowPoints(data?.grow_points ?? 0);
+      const profileData = await loadProfileData(TEST_USER_ID);
+      setUsername(profileData.username);
+      setGrowPoints(profileData.growPoints);
     } catch (error) {
       console.log('Fehler beim Laden des Profils:', error);
     }
   }, []);
-  
+
   useFocusEffect(
     useCallback(() => {
       loadProfile();
     }, [loadProfile])
   );
-
-  function renderToolIcon(tool) {
-    if (tool.type === 'Ionicons') {
-      return <Ionicons name={tool.name} size={20} color={tool.color} />;
-    }
-
-    if (tool.type === 'MaterialCommunityIcons') {
-      return (
-        <MaterialCommunityIcons
-          name={tool.name}
-          size={20}
-          color={tool.color}
-        />
-      );
-    }
-
-    if (tool.type === 'Feather') {
-      return <Feather name={tool.name} size={20} color={tool.color} />;
-    }
-
-    return null;
-  }
 
   return (
     <View style={styles.screen}>
@@ -116,9 +131,9 @@ export default function ToolsScreen() {
         </View>
 
         <View style={styles.grid}>
-          {tools.map((tool, index) => (
+          {tools.map((tool) => (
             <ToolCard
-              key={`${tool.title}-${index}`}
+              key={tool.title}
               icon={renderToolIcon(tool)}
               onPress={tool.disabled ? undefined : () => router.push(tool.route)}
               title={tool.title}
@@ -131,7 +146,11 @@ export default function ToolsScreen() {
         <View style={styles.mentorCard}>
           <View style={styles.mentorLeft}>
             <View style={styles.mentorIconWrap}>
-              <Ionicons name="sparkles-outline" size={28} color={COLORS.softGold} />
+              <Ionicons
+                name="sparkles-outline"
+                size={28}
+                color={COLORS.softGold}
+              />
             </View>
 
             <View style={styles.mentorTextBox}>
@@ -154,10 +173,13 @@ export default function ToolsScreen() {
           </Text>
 
           <View style={styles.trackerRow}>
-            <TrackerBox value="7" label="Tage Streak" />
-            <TrackerBox value="68%" label="Tagesziele" />
-            <TrackerBox value="24:37" label="Deep Work" />
-            <TrackerBox value="5.432" label="Schritte" />
+            {TRACKER_ITEMS.map((item) => (
+              <TrackerBox
+                key={item.label}
+                value={item.value}
+                label={item.label}
+              />
+            ))}
           </View>
         </View>
       </View>
@@ -221,7 +243,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginRight: 18,
     marginBottom: -2,
-  },  
+  },
   pointsValue: {
     color: COLORS.softGold,
     fontSize: 18,
@@ -233,33 +255,33 @@ const styles = StyleSheet.create({
     marginTop: -7,
   },
   pointsRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   coinPlaceholder: {
-  width: 28,
-  height: 28,
-  borderRadius: 14,
-  borderWidth: 1.5,
-  borderColor: '#a88446',
-  backgroundColor: '#120d19',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: 8,
-  marginTop: 5,
-  shadowColor: '#d6a34d',
-  shadowOffset: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#a88446',
+    backgroundColor: '#120d19',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginTop: 5,
+    shadowColor: '#d6a34d',
+    shadowOffset: {
       width: 0,
       height: 0,
     },
-  shadowOpacity: 0.35,
-  shadowRadius: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
   },
   coinStar: {
-  color: COLORS.softGold,
-  fontSize: 12,
-  fontWeight: '700',
-  marginTop: -1,
+    color: COLORS.softGold,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: -1,
   },
   sectionHeader: {
     marginBottom: 12,

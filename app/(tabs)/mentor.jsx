@@ -5,6 +5,33 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import ScreenContainer from '../../components/ui/ScreenContainer';
 import AppButton from '../../components/ui/AppButton';
 
+const BENEFITS = [
+  {
+    key: 'personalized',
+    title: 'Personalisiert',
+    text: 'Antworten, die zu dir passen.',
+    renderIcon: (scale) => (
+      <Ionicons name="person-outline" size={18 * scale} color="#d7ab56" />
+    ),
+  },
+  {
+    key: 'intelligent',
+    title: 'Intelligent',
+    text: 'Lernt aus deinem Verhalten.',
+    renderIcon: (scale) => (
+      <MaterialCommunityIcons name="brain" size={18 * scale} color="#d7ab56" />
+    ),
+  },
+  {
+    key: 'private',
+    title: 'Vertraulich',
+    text: 'Deine Daten bleiben privat.',
+    renderIcon: (scale) => (
+      <Feather name="shield" size={18 * scale} color="#d7ab56" />
+    ),
+  },
+];
+
 function BenefitItem({ icon, title, text, scale }) {
   return (
     <View style={styles.benefitItem}>
@@ -82,7 +109,15 @@ export default function KIMentorScreen() {
           GROW
         </Text>
 
-        <View style={[styles.heroCard, { borderRadius: 24 * scale, padding: 18 * scale }]}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              borderRadius: 24 * scale,
+              padding: 18 * scale,
+            },
+          ]}
+        >
           <View style={styles.heroTop}>
             <View style={styles.heroTextWrap}>
               <Text
@@ -186,24 +221,15 @@ export default function KIMentorScreen() {
               },
             ]}
           >
-            <BenefitItem
-              scale={scale}
-              icon={<Ionicons name="person-outline" size={18 * scale} color="#d7ab56" />}
-              title="Personalisiert"
-              text="Antworten, die zu dir passen."
-            />
-            <BenefitItem
-              scale={scale}
-              icon={<MaterialCommunityIcons name="brain" size={18 * scale} color="#d7ab56" />}
-              title="Intelligent"
-              text="Lernt aus deinem Verhalten."
-            />
-            <BenefitItem
-              scale={scale}
-              icon={<Feather name="shield" size={18 * scale} color="#d7ab56" />}
-              title="Vertraulich"
-              text="Deine Daten bleiben privat."
-            />
+            {BENEFITS.map((benefit) => (
+              <BenefitItem
+                key={benefit.key}
+                scale={scale}
+                icon={benefit.renderIcon(scale)}
+                title={benefit.title}
+                text={benefit.text}
+              />
+            ))}
           </View>
 
           <View
