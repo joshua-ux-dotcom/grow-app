@@ -12,7 +12,7 @@ import ToolCard from '../../../components/ui/ToolCard';
 import { getProfileUsername } from '../../../features/profile/services/profiles';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../services/supabaseClient';
 
 //Die Test_User_Id später nicht mehr statisch machen
 //Daran denken nach der Erstellung von Login die Policie zu löschen!
