@@ -15,6 +15,7 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 import VideoOverlay from '../ui/VideoOverlay';
 import { COLORS } from '../../constants/colors';
+import { awardVideoPoints } from '../../lib/growPoints';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +24,8 @@ const LONG_PRESS_DELAY = 120;
 const PROGRESS_AREA_SIDE = 18;
 const PROGRESS_AREA_BOTTOM = 65;
 const THUMB_SIZE = 10;
+const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
+const WATCH_THRESHOLD = 0.8;
 
 export default function FeedItem({
   item,
@@ -39,8 +42,11 @@ export default function FeedItem({
   const [duration, setDuration] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
+  const [showPointReward, setShowPointReward] = useState(false);
 
   const hasReportedReady = useRef(false);
+  const hasAwardedPointsRef = useRef(false);
+  const isAwardingPointsRef = useRef(false);
 
   const player = useVideoPlayer(item.source, (playerInstance) => {
     playerInstance.loop = true;
@@ -84,6 +90,14 @@ export default function FeedItem({
     isPausedByUser,
     player,
   ]);
+  
+  useEffect(() => {
+    if (!isActive) {
+      hasAwardedPointsRef.current = false;
+      isAwardingPointsRef.current = false;
+      setShowPointReward(false);
+    }
+  }, [isActive, item.id]);
 
   useEffect(() => {
     let intervalId;
@@ -110,6 +124,48 @@ export default function FeedItem({
       }
     };
   }, [isActive, isFeedFocused, isScrubbing, player]);
+
+  const awardVideoPointIfNeeded = useCallback(async () => {
+    if (hasAwardedPointsRef.current) return;
+    if (isAwardingPointsRef.current) return;
+
+    isAwardingPointsRef.current = true;
+
+    try {
+      const userId = TEST_USER_ID;
+      const videoId = item.id;
+
+      const result = await awardVideoPoints(userId, videoId);
+
+      if (result?.reason === 'already_awarded') {
+        hasAwardedPointsRef.current = true;
+        return;
+      }
+
+      if (result?.awarded) {
+        hasAwardedPointsRef.current = true;
+        setShowPointReward(true);
+
+        setTimeout(() => {
+          setShowPointReward(false);
+        }, 2200);
+      }
+    } catch (error) {
+      console.log('Fehler bei Video-Grow-Points:', error);
+    } finally {
+      isAwardingPointsRef.current = false;
+    }
+  }, [item.id]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    if (duration <= 0) return;
+    if (hasAwardedPointsRef.current) return;
+
+    if (progress >= WATCH_THRESHOLD) {
+      awardVideoPointIfNeeded();
+    }
+  }, [progress, duration, isActive, awardVideoPointIfNeeded]);
 
   const canScrub = duration > 0 && trackWidth > 0;
 
@@ -201,6 +257,7 @@ export default function FeedItem({
           onToggleSaved={onToggleSaved}
           isPaused={isPausedByUser}
           isMuted={isMuted}
+          showPointReward={showPointReward}
           onResume={() => {
             setIsPausedByUser(false);
           }}

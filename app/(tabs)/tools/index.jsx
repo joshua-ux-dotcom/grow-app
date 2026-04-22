@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useCallback, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
   Ionicons,
@@ -7,10 +7,12 @@ import {
   Feather,
 } from '@expo/vector-icons';
 
+import { useFocusEffect } from '@react-navigation/native';
 import ToolCard from '../../../components/ui/ToolCard';
 import { getProfileUsername } from '../../../lib/profiles';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
+import { supabase } from '../../../lib/supabase';
 
 //Die Test_User_Id später nicht mehr statisch machen
 //Daran denken nach der Erstellung von Login die Policie zu löschen!
@@ -27,19 +29,32 @@ function TrackerBox({ value, label }) {
 
 export default function ToolsScreen() {
   const [username, setUsername] = useState('Grower');
+  const [growPoints, setGrowPoints] = useState(0);
 
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const username = await getProfileUsername(TEST_USER_ID);
-        setUsername(username);
-      } catch (error) {
-        console.log('Fehler beim Laden des Profils:', error);
-      }
+  const loadProfile = useCallback(async () => {
+    try {
+      const username = await getProfileUsername(TEST_USER_ID);
+      setUsername(username);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('grow_points')
+        .eq('id', TEST_USER_ID)
+        .single();
+
+      if (error) throw error;
+
+      setGrowPoints(data?.grow_points ?? 0);
+    } catch (error) {
+      console.log('Fehler beim Laden des Profils:', error);
     }
-
-    loadProfile();
   }, []);
+  
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile])
+  );
 
   function renderToolIcon(tool) {
     if (tool.type === 'Ionicons') {
@@ -84,7 +99,9 @@ export default function ToolsScreen() {
                 <Text style={styles.coinStar}>★</Text>
               </View>
 
-              <Text style={styles.pointsValue}>18.760</Text>
+              <Text style={styles.pointsValue}>
+                {growPoints.toLocaleString('de-DE')}
+              </Text>
             </View>
 
             <Text style={styles.pointsLabel}>GROW Points</Text>

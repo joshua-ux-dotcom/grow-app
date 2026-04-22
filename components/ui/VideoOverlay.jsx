@@ -18,6 +18,7 @@ export default function VideoOverlay({
   onResume = () => {},
   onMuteAndResume = () => {},
   isMuted = false,
+  showPointReward = false,
 }) {
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -42,6 +43,12 @@ export default function VideoOverlay({
             <Feather name="bookmark" size={31} color="#D4AF37" />
           )}
         </TouchableOpacity>
+
+        {showPointReward && (
+          <View style={styles.pointBubble} pointerEvents="none">
+            <Text style={styles.pointBubbleText}>+1</Text>
+          </View>  
+        )}
       </View>
 
       {isPaused && (
@@ -153,5 +160,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
     paddingLeft: 4,
+  },
+  pointBubble: {
+    marginTop: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#D4AF37',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 4,
+  },
+
+  pointBubbleText: {
+    color: '#111111',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

@@ -262,10 +262,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
   },
-    loadingLogo: {
-    width: 180,
-    height: 180,
-  },
 
   stateContainer: {
     flex: 1,
