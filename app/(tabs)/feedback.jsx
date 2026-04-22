@@ -26,6 +26,8 @@ export default function FeedbackScreen() {
   const [text, setText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
+  const [sendSuccess, setSendSuccess] = useState(false);
 
   const feedbackTypes = ['Idee / Vorschlag', 'Bug melden', 'Lob & Dank'];
   const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
@@ -60,6 +62,9 @@ export default function FeedbackScreen() {
         mimeType: asset.mimeType || 'image/jpeg',
         fileName: asset.fileName || `feedback-${Date.now()}.jpg`,
       });
+
+      setSendError(null);
+      setSendSuccess(false);
     } catch (error) {
       Alert.alert('Fehler', 'Bild konnte nicht ausgewählt werden.');
     }
@@ -103,6 +108,8 @@ export default function FeedbackScreen() {
 
     try {
       setSending(true);
+      setSendError(null);
+      setSendSuccess(false);
 
       const userId = TEST_USER_ID;
 
@@ -167,14 +174,10 @@ export default function FeedbackScreen() {
       setSelectedImage(null);
       setSelectedType('Idee / Vorschlag');
       setSelectedImportance(4);
-
-      Alert.alert(
-        'Erfolg',
-        'Dein Feedback wurde gespeichert. Du hast 5 Grow Points erhalten.'
-      );
+      setSendSuccess(true);
     } catch (error) {
       console.log('Fehler beim Senden von Feedback:', error);
-      Alert.alert('Fehler', 'Feedback konnte nicht gesendet werden.');
+      setSendError('Feedback konnte nicht gesendet werden. Bitte versuche es erneut.');
     } finally {
       setSending(false);
     }
@@ -234,7 +237,11 @@ export default function FeedbackScreen() {
               key={type}
               label={type}
               active={selectedType === type}
-              onPress={() => setSelectedType(type)}
+              onPress={() => {
+                setSelectedType(type);
+                setSendError(null);
+                setSendSuccess(false);
+              }}
             />
           ))}
         </View>
@@ -247,7 +254,11 @@ export default function FeedbackScreen() {
             multiline
             maxLength={500}
             value={text}
-            onChangeText={setText}
+            onChangeText={(value) => {
+              setText(value);
+              setSendError(null);
+              setSendSuccess(false);
+            }}
             placeholder="Teile deine Idee, dein Feedback oder was dir fehlt. Je mehr Details, desto besser."
             placeholderTextColor="#7E7A88"
           />
@@ -265,7 +276,11 @@ export default function FeedbackScreen() {
               key={item}
               value={item}
               active={selectedImportance === item}
-              onPress={() => setSelectedImportance(item)}
+              onPress={() => {
+                setSelectedImportance(item);
+                setSendError(null);
+                setSendSuccess(false);
+              }}
             />
           ))}
         </View>
@@ -300,7 +315,11 @@ export default function FeedbackScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => setSelectedImage(null)}
+              onPress={() => {
+                setSelectedImage(null);
+                setSendError(null);
+                setSendSuccess(false);
+              }}
               style={styles.removeImageButton}
             >
               <Text style={styles.removeImageText}>Bild entfernen</Text>
@@ -308,17 +327,35 @@ export default function FeedbackScreen() {
           </View>
         )}
 
-       <TouchableOpacity
-        style={[styles.sendButton, sending && { opacity: 0.7 }]}
-        onPress={handleSend}
-        disabled={sending}
-      >
-        {sending ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <Text style={styles.sendButtonText}>Feedback senden</Text>
+        <TouchableOpacity
+          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+          onPress={handleSend}
+          disabled={sending}
+        >
+          {sending ? (
+            <>
+              <ActivityIndicator color="#000" />
+              <Text style={styles.sendButtonText}>Wird gesendet...</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.sendButtonText}>Feedback senden</Text>
+              <Ionicons name="paper-plane-outline" size={18} color="#111111" />
+            </>
+          )}
+        </TouchableOpacity>
+
+        {sendSuccess && (
+          <Text style={styles.successText}>
+            Dein Feedback wurde gespeichert. Du hast 5 Grow Points erhalten.
+          </Text>
         )}
-      </TouchableOpacity>
+
+        {sendError && (
+          <Text style={styles.errorText}>
+            {sendError}
+          </Text>
+        )}
 
         <Text style={styles.footerText}>
           Danke, dass du Grow besser machst. 🙏
@@ -524,5 +561,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#B6B0C2',
     fontSize: 12,
+  },
+  sendButtonDisabled: {
+    opacity: 0.7,
+  },
+
+  successText: {
+    textAlign: 'center',
+    color: '#D4AF37',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+
+  errorText: {
+    textAlign: 'center',
+    color: '#d46a6a',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 14,
   },
 });
