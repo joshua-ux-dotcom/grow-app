@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -7,6 +8,9 @@ import {
 } from '@expo/vector-icons';
 
 import ToolCard from '../../../components/ui/ToolCard';
+import { supabase } from '../../../lib/supabase';
+
+const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
 function TrackerBox({ value, label }) {
   return (
@@ -18,6 +22,26 @@ function TrackerBox({ value, label }) {
 }
 
 export default function ToolsScreen() {
+  const [username, setUsername] = useState('Grower');
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', TEST_USER_ID)
+        .single();
+
+      if (!error && data) {
+        setUsername(data.username);
+      } else {
+        console.log('Fehler beim Laden des Profils:', error);
+      }
+    }
+
+    loadProfile();
+  }, []);
+
   const tools = [
     {
       title: 'To-Do',
@@ -92,7 +116,7 @@ export default function ToolsScreen() {
 
             <View style={styles.headerTextBox}>
               <Text style={styles.topLabel}>GROW</Text>
-              <Text style={styles.accountName}>Grower</Text>
+              <Text style={styles.accountName}>{username}</Text>
             </View>
           </View>
 
