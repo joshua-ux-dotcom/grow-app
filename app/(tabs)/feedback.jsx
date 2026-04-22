@@ -1,187 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
- StyleSheet,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { decode } from 'base64-arraybuffer';
 
-import InfoCard from '../../components/feedback/InfoCard';
-import FeedbackTypeButton from '../../components/feedback/FeedbackTypeButton';
-import ImportanceButton from '../../components/feedback/ImportanceButton';
-import { supabase } from '../../services/supabaseClient';
+import InfoCard from '../../features/feedback/components/InfoCard';
+import FeedbackTypeButton from '../../features/feedback/components/FeedbackTypeButton';
+import ImportanceButton from '../../features/feedback/components/ImportanceButton';
+import { useFeedbackForm } from '../../features/feedback/hooks/useFeedbackForm';
+
+const feedbackTypes = ['Idee / Vorschlag', 'Bug melden', 'Lob & Dank'];
 
 export default function FeedbackScreen() {
-  const [selectedType, setSelectedType] = useState('Idee / Vorschlag');
-  const [selectedImportance, setSelectedImportance] = useState(4);
-  const [text, setText] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState(null);
-  const [sendSuccess, setSendSuccess] = useState(false);
-
-  const feedbackTypes = ['Idee / Vorschlag', 'Bug melden', 'Lob & Dank'];
-  const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
-
-  const handlePickImage = async () => {
-    try {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert(
-          'Berechtigung nötig',
-          'Bitte erlaube den Zugriff auf deine Fotos.'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.7,
-        base64: true,
-      });
-
-      if (result.canceled) return;
-
-      const asset = result.assets[0];
-
-      setSelectedImage({
-        uri: asset.uri,
-        base64: asset.base64,
-        mimeType: asset.mimeType || 'image/jpeg',
-        fileName: asset.fileName || `feedback-${Date.now()}.jpg`,
-      });
-
-      setSendError(null);
-      setSendSuccess(false);
-    } catch (error) {
-      Alert.alert('Fehler', 'Bild konnte nicht ausgewählt werden.');
-    }
-  };
-
-  const uploadFeedbackImage = async (userId) => {
-    if (!selectedImage) return { imageUrl: null, imagePath: null };
-
-    const fileExt = selectedImage.fileName.split('.').pop() || 'jpg';
-    const safeUserId = userId || 'anonymous';
-    const filePath = `${safeUserId}/${Date.now()}.${fileExt}`;
-
-    const arrayBuffer = decode(selectedImage.base64);
-
-    const { error: uploadError } = await supabase.storage
-      .from('feedback-images')
-      .upload(filePath, arrayBuffer, {
-        contentType: selectedImage.mimeType,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage
-      .from('feedback-images')
-      .getPublicUrl(filePath);
-
-    return {
-      imageUrl: data.publicUrl,
-      imagePath: filePath,
-    };
-  };
-
-  const handleSend = async () => {
-    if (!text.trim()) {
-      Alert.alert('Hinweis', 'Bitte schreibe zuerst dein Feedback.');
-      return;
-    }
-
-    try {
-      setSending(true);
-      setSendError(null);
-      setSendSuccess(false);
-
-      const userId = TEST_USER_ID;
-
-      let imageUrl = null;
-      let imagePath = null;
-
-      if (selectedImage) {
-        const uploadResult = await uploadFeedbackImage(userId);
-        imageUrl = uploadResult.imageUrl;
-        imagePath = uploadResult.imagePath;
-      }
-
-      const { error: feedbackError } = await supabase.from('feedback').insert({
-        user_id: userId,
-        feedback_type: selectedType,
-        importance: selectedImportance,
-        message: text.trim(),
-        image_url: imageUrl,
-        image_path: imagePath,
-      });
-
-      if (feedbackError) {
-        throw feedbackError;
-      }
-
-      const { data: profile, error: profileFetchError } = await supabase
-        .from('profiles')
-        .select('grow_points')
-        .eq('id', userId)
-        .single();
-
-      if (profileFetchError) {
-        throw profileFetchError;
-      }
-
-      const currentGrowPoints = profile?.grow_points ?? 0;
-
-      const { error: profileUpdateError } = await supabase
-        .from('profiles')
-        .update({
-          grow_points: currentGrowPoints + 5,
-        })
-        .eq('id', userId);
-
-      if (profileUpdateError) {
-        throw profileUpdateError;
-      }
-
-      const { error: logError } = await supabase
-        .from('grow_points_log')
-        .insert({
-          user_id: userId,
-          points: 5,
-          reason: 'feedback_sent',
-        });
-
-      if (logError) {
-        throw logError;
-      }
-
-      setText('');
-      setSelectedImage(null);
-      setSelectedType('Idee / Vorschlag');
-      setSelectedImportance(4);
-      setSendSuccess(true);
-    } catch (error) {
-      console.log('Fehler beim Senden von Feedback:', error);
-      setSendError('Feedback konnte nicht gesendet werden. Bitte versuche es erneut.');
-    } finally {
-      setSending(false);
-    }
-  };
+  const {
+    selectedType,
+    setSelectedType,
+    selectedImportance,
+    setSelectedImportance,
+    text,
+    setText,
+    selectedImage,
+    sending,
+    sendError,
+    sendSuccess,
+    handlePickImage,
+    handleRemoveImage,
+    handleSend,
+    clearStatus,
+  } = useFeedbackForm();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -215,13 +69,11 @@ export default function FeedbackScreen() {
             title="Deine Meinung zählt"
             text="Jedes Feedback bringt uns weiter."
           />
-
           <InfoCard
             icon={<Ionicons name="trending-up-outline" size={22} color="#D4AF37" />}
             title="Gemeinsam wachsen"
             text="Wir hören zu und setzen um."
           />
-
           <InfoCard
             icon={<Ionicons name="gift-outline" size={22} color="#D4AF37" />}
             title="Belohnt werden"
@@ -239,8 +91,7 @@ export default function FeedbackScreen() {
               active={selectedType === type}
               onPress={() => {
                 setSelectedType(type);
-                setSendError(null);
-                setSendSuccess(false);
+                clearStatus();
               }}
             />
           ))}
@@ -256,8 +107,7 @@ export default function FeedbackScreen() {
             value={text}
             onChangeText={(value) => {
               setText(value);
-              setSendError(null);
-              setSendSuccess(false);
+              clearStatus();
             }}
             placeholder="Teile deine Idee, dein Feedback oder was dir fehlt. Je mehr Details, desto besser."
             placeholderTextColor="#7E7A88"
@@ -278,8 +128,7 @@ export default function FeedbackScreen() {
               active={selectedImportance === item}
               onPress={() => {
                 setSelectedImportance(item);
-                setSendError(null);
-                setSendSuccess(false);
+                clearStatus();
               }}
             />
           ))}
@@ -315,11 +164,7 @@ export default function FeedbackScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => {
-                setSelectedImage(null);
-                setSendError(null);
-                setSendSuccess(false);
-              }}
+              onPress={handleRemoveImage}
               style={styles.removeImageButton}
             >
               <Text style={styles.removeImageText}>Bild entfernen</Text>
@@ -351,11 +196,7 @@ export default function FeedbackScreen() {
           </Text>
         )}
 
-        {sendError && (
-          <Text style={styles.errorText}>
-            {sendError}
-          </Text>
-        )}
+        {sendError && <Text style={styles.errorText}>{sendError}</Text>}
 
         <Text style={styles.footerText}>
           Danke, dass du Grow besser machst. 🙏
@@ -488,49 +329,22 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     backgroundColor: '#110D16',
   },
-  imageSection: {
-    marginTop: 16,
-    marginBottom: 20,
-  },
-
-  imageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#7f6236',
-    borderRadius: 12,
-    backgroundColor: '#120d19',
-  },
-
-  imageButtonText: {
-    color: '#f2dfb4',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
   previewWrap: {
     marginTop: 12,
   },
-
   previewImage: {
     width: '100%',
     height: 180,
     borderRadius: 14,
   },
-
   removeImageButton: {
     marginTop: 10,
     alignSelf: 'flex-start',
   },
-
   removeImageText: {
     color: '#d6d0db',
     fontSize: 13,
   },
-
   uploadTitle: {
     color: '#F2D37A',
     fontSize: 14,
@@ -565,7 +379,6 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     opacity: 0.7,
   },
-
   successText: {
     textAlign: 'center',
     color: '#D4AF37',
@@ -573,7 +386,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 14,
   },
-
   errorText: {
     textAlign: 'center',
     color: '#d46a6a',

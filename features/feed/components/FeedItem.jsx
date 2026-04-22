@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
-import VideoOverlay from '../../../components/ui/VideoOverlay';
+import VideoOverlay from './VideoOverlay';
 import FeedProgressBar from './FeedProgressBar';
 import { useWatchReward } from '../hooks/useWatchReward';
 import { useVideoProgress } from '../hooks/useVideoProgress';
