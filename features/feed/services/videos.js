@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from "../../../services/supabaseClient";
 
 export async function getActiveVideos() {
   const { data, error } = await supabase

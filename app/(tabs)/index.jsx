@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import FeedItem from '../../components/feed/FeedItem';
-import { getActiveVideos } from '../../lib/videos';
+import { getActiveVideos } from '../../features/feed/services/videos';
 
 const { height } = Dimensions.get('window');
 

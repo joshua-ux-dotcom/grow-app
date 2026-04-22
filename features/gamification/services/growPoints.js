@@ -1,5 +1,4 @@
-import { supabase } from './supabase';
-
+import { supabase } from "../../../services/supabaseClient";
 export async function awardVideoPoints(userId, videoId) {
   const { data: existingView, error: fetchViewError } = await supabase
     .from('video_views')

@@ -18,7 +18,7 @@ import { decode } from 'base64-arraybuffer';
 import InfoCard from '../../components/feedback/InfoCard';
 import FeedbackTypeButton from '../../components/feedback/FeedbackTypeButton';
 import ImportanceButton from '../../components/feedback/ImportanceButton';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../services/supabaseClient';
 
 export default function FeedbackScreen() {
   const [selectedType, setSelectedType] = useState('Idee / Vorschlag');

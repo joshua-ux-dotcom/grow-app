@@ -9,7 +9,7 @@ import {
 
 import { useFocusEffect } from '@react-navigation/native';
 import ToolCard from '../../../components/ui/ToolCard';
-import { getProfileUsername } from '../../../lib/profiles';
+import { getProfileUsername } from '../../../features/profile/services/profiles';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../lib/supabase';

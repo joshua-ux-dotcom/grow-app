@@ -15,7 +15,7 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 import VideoOverlay from '../ui/VideoOverlay';
 import { COLORS } from '../../constants/colors';
-import { awardVideoPoints } from '../../lib/growPoints';
+import { awardVideoPoints } from '../../features/gamification/services/growPoints';
 
 const { width, height } = Dimensions.get('window');
 
