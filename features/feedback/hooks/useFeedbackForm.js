@@ -91,9 +91,13 @@ export function useFeedbackForm() {
 
     await sendFeedback({
       userId: user.id,
-    })
-      resetForm();
-      setSendSuccess(true);
+      selectedType,
+      selectedImportance,
+      text,
+      selectedImage,
+    });
+    resetForm();
+    setSendSuccess(true);
     } catch (error) {
       console.log('Fehler beim Senden von Feedback:', error);
       setSendError('Feedback konnte nicht gesendet werden. Bitte versuche es erneut.');
