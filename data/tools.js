@@ -48,6 +48,7 @@ export const tools = [
     route: '/tools/daily-planner',
   },
   {
+    id: 'comming-soon-1',
     title: 'In Bearbeitung',
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',
@@ -56,6 +57,7 @@ export const tools = [
     disabled: true,
   },
   {
+    id: 'comming-soon-2',
     title: 'In Bearbeitung',
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',
@@ -64,6 +66,7 @@ export const tools = [
     disabled: true,
   },
   {
+    id: 'comming-soon-3',
     title: 'In Bearbeitung',
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',

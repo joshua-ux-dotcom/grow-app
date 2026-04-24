@@ -12,11 +12,11 @@ import FeedProgressBar from './FeedProgressBar';
 import { useWatchReward } from '../hooks/useWatchReward';
 import { useVideoProgress } from '../hooks/useVideoProgress';
 import { COLORS } from '../../../constants/colors';
+import { supabase } from '../../../services/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
 
 const LONG_PRESS_DELAY = 120;
-const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
 export default function FeedItem({
   item,
@@ -30,6 +30,7 @@ export default function FeedItem({
   const [isHolding, setIsHolding] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
+  const [userId, setUserId] = useState(null);
 
   const hasReportedReady = useRef(false);
 
@@ -94,11 +95,23 @@ export default function FeedItem({
     setProgress,
   ]);
 
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setUserId(user?.id ?? null);
+    }
+
+    loadUser();
+  }, []);
+
   const { showPointReward } = useWatchReward({
     isActive,
     progress,
     duration,
-    userId: TEST_USER_ID,
+    userId: userId,
     videoId: item.id,
   });
 

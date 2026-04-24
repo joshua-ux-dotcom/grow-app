@@ -3,10 +3,10 @@ import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { sendFeedback } from '../services/feedbackService';
+import { supabase } from '../../../services/supabaseClient';
 
 const DEFAULT_TYPE = 'Idee / Vorschlag';
 const DEFAULT_IMPORTANCE = 4;
-const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
 export function useFeedbackForm() {
   const [selectedType, setSelectedType] = useState(DEFAULT_TYPE);
@@ -81,14 +81,17 @@ export function useFeedbackForm() {
       setSending(true);
       clearStatus();
 
-      await sendFeedback({
-        userId: TEST_USER_ID,
-        selectedType,
-        selectedImportance,
-        text,
-        selectedImage,
-      });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (!user) {
+      throw new Error('Kein User eingeloggt');
+    }
+
+    await sendFeedback({
+      userId: user.id,
+    })
       resetForm();
       setSendSuccess(true);
     } catch (error) {

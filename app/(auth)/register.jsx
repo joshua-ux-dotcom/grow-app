@@ -82,7 +82,7 @@ export default function RegisterScreen() {
           username: cleanUsername,
           grow_points: 0,
         });
-        
+
         if (profileError) {
         console.log('PROFILE ERROR:', profileError);
         setErrorText(profileError.message);
@@ -90,18 +90,6 @@ export default function RegisterScreen() {
         }
 
       // Beta Code verbrauchen
-      const { error: updateError } = await supabase
-        .from('beta_access_codes')
-        .update({
-          used_by: data.user.id,
-          used_at: new Date().toISOString(),
-        })
-        .eq('id', betaRow.id);
-
-      if (updateError) {
-        setErrorText('Beta-Code konnte nicht aktiviert werden.');
-        return;
-      }
 
       router.replace('/(tabs)');
     } catch (err) {

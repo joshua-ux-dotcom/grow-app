@@ -1,5 +1,10 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { 
+  StyleSheet, 
+  Text, 
+  View,
+  Pressable 
+} from 'react-native';
 import { router } from 'expo-router';
 import {
   Ionicons,
@@ -9,12 +14,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 
 import ToolCard from '../../../components/ui/ToolCard';
-import { getProfileUsername } from '../../../features/profile/services/profiles';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
-
-const TEST_USER_ID = '06274c6b-c4a4-42c3-871a-c3571aa74865';
 
 const TRACKER_ITEMS = [
   { value: '7', label: 'Tage Streak' },
@@ -55,31 +57,63 @@ function renderToolIcon(tool) {
 }
 
 async function loadProfileData(userId) {
-  const username = await getProfileUsername(userId);
-
   const { data, error } = await supabase
     .from('profiles')
-    .select('grow_points')
+    .select('username, grow_points')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw error;
   }
 
+  if (!data) {
+    const fallbackUsername = `user_${userId.slice(0, 6)}`;
+
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        username: fallbackUsername,
+        grow_points: 0,
+      })
+      .select('username, grow_points')
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return {
+      username: newProfile.username,
+      growPoints: newProfile.grow_points ?? 0,
+    };
+  }
+
   return {
-    username,
-    growPoints: data?.grow_points ?? 0,
+    username: data.username,
+    growPoints: data.grow_points ?? 0,
   };
 }
 
 export default function ToolsScreen() {
   const [username, setUsername] = useState('Grower');
   const [growPoints, setGrowPoints] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
-      const profileData = await loadProfileData(TEST_USER_ID);
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return;
+      }
+
+      const profileData = await loadProfileData(user.id);
+
       setUsername(profileData.username);
       setGrowPoints(profileData.growPoints);
     } catch (error) {
@@ -92,6 +126,11 @@ export default function ToolsScreen() {
       loadProfile();
     }, [loadProfile])
   );
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace('/(auth)/login');
+  }
 
   return (
     <View style={styles.screen}>
@@ -108,18 +147,49 @@ export default function ToolsScreen() {
             </View>
           </View>
 
-          <View style={styles.pointsBox}>
-            <View style={styles.pointsRow}>
-              <View style={styles.coinPlaceholder}>
-                <Text style={styles.coinStar}>★</Text>
+          <View style={styles.rightHeader}>
+            <View style={styles.pointsBox}>
+              <View style={styles.pointsRow}>
+                <View style={styles.coinPlaceholder}>
+                  <Text style={styles.coinStar}>★</Text>
+                </View>
+
+                <Text style={styles.pointsValue}>
+                  {growPoints.toLocaleString('de-DE')}
+                </Text>
               </View>
 
-              <Text style={styles.pointsValue}>
-                {growPoints.toLocaleString('de-DE')}
-              </Text>
+              <Text style={styles.pointsLabel}>GROW Points</Text>
             </View>
 
-            <Text style={styles.pointsLabel}>GROW Points</Text>
+            <Pressable
+              onPress={() => setMenuOpen(!menuOpen)}
+              style={styles.menuButton}
+            >
+              <Feather name="more-vertical" size={20} color={COLORS.softGold} />
+            </Pressable>
+
+            {menuOpen && (
+              <View style={styles.dropdown}>
+                <Pressable onPress={() => router.push('/saved-videos')}>
+                  <Text style={styles.menuItem}>Gespeicherte Videos</Text>
+                </Pressable>
+
+                <Pressable onPress={() => router.push('/privacy')}>
+                  <Text style={styles.menuItem}>Datenschutz</Text>
+                </Pressable>
+
+                <Pressable onPress={() => router.push('/imprint')}>
+                  <Text style={styles.menuItem}>Impressum</Text>
+                </Pressable>
+
+                <View style={styles.line} />
+
+                <Pressable onPress={handleLogout}>
+                  <Text style={styles.logoutItem}>Logout</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </View>
 
@@ -133,7 +203,7 @@ export default function ToolsScreen() {
         <View style={styles.grid}>
           {tools.map((tool) => (
             <ToolCard
-              key={tool.title}
+              key={tool.id}
               icon={renderToolIcon(tool)}
               onPress={tool.disabled ? undefined : () => router.push(tool.route)}
               title={tool.title}
@@ -175,7 +245,7 @@ export default function ToolsScreen() {
           <View style={styles.trackerRow}>
             {TRACKER_ITEMS.map((item) => (
               <TrackerBox
-                key={item.label}
+                key={item.id}
                 value={item.value}
                 label={item.label}
               />
@@ -406,5 +476,46 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
     lineHeight: 13,
+  },
+  rightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  menuButton: {
+    marginLeft: 10,
+    padding: 4,
+  },
+
+  dropdown: {
+    position: 'absolute',
+    top: 46,
+    right: 0,
+    width: 190,
+    backgroundColor: '#0d0913',
+    borderWidth: 1,
+    borderColor: '#7f6236',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    zIndex: 999,
+  },
+
+  menuItem: {
+    color: COLORS.softGold,
+    fontSize: 14,
+    paddingVertical: 8,
+  },
+
+  logoutItem: {
+    color: '#ff7777',
+    fontSize: 14,
+    paddingVertical: 8,
+  },
+
+  line: {
+    height: 1,
+    backgroundColor: '#7f6236',
+    marginVertical: 6,
   },
 });
