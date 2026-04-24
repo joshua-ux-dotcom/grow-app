@@ -63,6 +63,22 @@ export default function RegisterScreen() {
 
       const email = `${cleanUsername}@growapp.com`;
 
+      const { data: existingProfile, error: usernameError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', cleanUsername)
+        .maybeSingle();
+
+      if (usernameError) {
+        setErrorText('Username konnte nicht geprüft werden.');
+        return;
+      }
+
+      if (existingProfile) {
+        setErrorText('Username ist bereits vergeben.');
+        return;
+      }
+
       // Auth Account erstellen
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -70,7 +86,18 @@ export default function RegisterScreen() {
       });
 
       if (error || !data.user) {
-        setErrorText(error?.message || 'Registrierung fehlgeschlagen.');
+        const message = error?.message?.toLowerCase() || '';
+
+        if (message.includes('already registered') || message.includes('already been registered')) {
+          setErrorText('Username ist bereits vergeben.');
+        } else if (message.includes('password')) {
+          setErrorText('Passwort ist zu schwach oder zu kurz.');
+        } else if (message.includes('rate limit')) {
+          setErrorText('Zu viele Versuche. Bitte warte kurz und versuche es später erneut.');
+        } else {
+          setErrorText('Registrierung fehlgeschlagen. Bitte prüfe deine Eingaben.');
+        }
+
         return;
       }
 
@@ -88,9 +115,18 @@ export default function RegisterScreen() {
         setErrorText(profileError.message);
         return;
         }
+        const { data: claimed, error: claimError } = await supabase.rpc(
+          'claim_beta_code',
+          {
+            input_code: cleanCode,
+            input_user_id: data.user.id,
+          }
+        );
 
-      // Beta Code verbrauchen
-
+        if (claimError || !claimed) {
+          setErrorText('Beta-Code konnte nicht aktiviert werden.');
+          return;
+        }
       router.replace('/(tabs)');
     } catch (err) {
       setErrorText('Registrierung fehlgeschlagen.');
@@ -154,7 +190,11 @@ export default function RegisterScreen() {
 
         {!!errorText && <Text style={styles.error}>{errorText}</Text>}
 
-        <Pressable style={styles.button} onPress={handleRegister}>
+        <Pressable
+          style={[styles.button, loading && { opacity: 0.7 }]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color={COLORS.black} />
           ) : (

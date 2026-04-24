@@ -1,5 +1,6 @@
 export const tools = [
   {
+    id: 'todo',
     title: 'To-Do',
     description: 'Plane deinen Tag.',
     type: 'Ionicons',
@@ -8,6 +9,7 @@ export const tools = [
     route: '/tools/todo',
   },
   {
+    id: 'training-plan',
     title: 'Trainingsplan',
     description: 'Erstelle Trainingstage.',
     type: 'MaterialCommunityIcons',
@@ -16,6 +18,7 @@ export const tools = [
     route: '/tools/training-plan',
   },
   {
+    id: 'goals',
     title: 'Ziele',
     description: 'Setze große Ziele.',
     type: 'Feather',
@@ -24,6 +27,7 @@ export const tools = [
     route: '/tools/goals',
   },
   {
+    id: 'habits',
     title: 'Gewohnheiten',
     description: 'Baue Streaks auf.',
     type: 'Ionicons',
@@ -32,6 +36,7 @@ export const tools = [
     route: '/tools/habits',
   },
   {
+    id: 'deep-work',
     title: 'Deep Work',
     description: 'Fokus ohne Ablenkungen',
     type: 'Feather',
@@ -40,6 +45,7 @@ export const tools = [
     route: '/tools/deep-work',
   },
   {
+    id: 'daily-planner',
     title: 'Tagesplaner',
     description: 'Strukturiere deinen Tag.',
     type: 'Ionicons',

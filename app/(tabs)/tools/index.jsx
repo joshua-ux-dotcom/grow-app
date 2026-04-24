@@ -171,15 +171,15 @@ export default function ToolsScreen() {
 
             {menuOpen && (
               <View style={styles.dropdown}>
-                <Pressable onPress={() => router.push('/saved-videos')}>
+                <Pressable onPress={() => router.push('/tools/saved-videos')}>
                   <Text style={styles.menuItem}>Gespeicherte Videos</Text>
                 </Pressable>
 
-                <Pressable onPress={() => router.push('/privacy')}>
+                <Pressable onPress={() => router.push('/tools/privacy')}>
                   <Text style={styles.menuItem}>Datenschutz</Text>
                 </Pressable>
 
-                <Pressable onPress={() => router.push('/imprint')}>
+                <Pressable onPress={() => router.push('/tools/imprint')}>
                   <Text style={styles.menuItem}>Impressum</Text>
                 </Pressable>
 
@@ -243,9 +243,9 @@ export default function ToolsScreen() {
           </Text>
 
           <View style={styles.trackerRow}>
-            {TRACKER_ITEMS.map((item) => (
+            {TRACKER_ITEMS.map((item, index) => (
               <TrackerBox
-                key={item.id}
+                key={`tracker-${index}`}
                 value={item.value}
                 label={item.label}
               />
