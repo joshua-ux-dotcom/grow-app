@@ -2,24 +2,33 @@ import {
   useCallback,
   useRef,
   useState,
-  useEffect,
 } from 'react';
 import {
-  FlatList,
-  View,
   Dimensions,
-  StyleSheet,
+  FlatList,
   Image,
-  Text,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
-import FeedItem from '../../features/feed/components/FeedItem';
-import { getActiveVideos, toggleVideoBookmark } from '../../features/feed/services/videos'
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+
+import FeedItem from '../features/feed/components/FeedItem';
+import {
+  getSavedVideos,
+  toggleVideoBookmark,
+} from '../features/feed/services/videos';
+import { COLORS } from '../constants/colors';
 
 const { height } = Dimensions.get('window');
 
-export default function FeedScreen() {
+export default function SavedFeedScreen() {
+  const params = useLocalSearchParams();
+  const initialIndex = Number(params.initialIndex ?? 0);
+
   const [feedData, setFeedData] = useState([]);
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -30,7 +39,7 @@ export default function FeedScreen() {
   const isFocused = useIsFocused();
 
   const flatListRef = useRef(null);
-  const currentIndexRef = useRef(0);
+  const currentIndexRef = useRef(initialIndex);
   const dragStartOffsetY = useRef(0);
 
   const FLICK_THRESHOLD = 28;
@@ -40,31 +49,46 @@ export default function FeedScreen() {
       setFeedError(null);
       setHasNoVideos(false);
       setIsInitialLoading(true);
-      
-      const videos = await getActiveVideos();
+
+      const videos = await getSavedVideos();
 
       if (!videos || videos.length === 0) {
-        setFeedData([])
+        setFeedData([]);
         setActiveVideoId(null);
         setHasNoVideos(true);
         setIsInitialLoading(false);
         return;
       }
 
+      const safeInitialIndex = Math.max(
+        0,
+        Math.min(initialIndex, videos.length - 1)
+      );
+
       setFeedData(videos);
-      setActiveVideoId(videos[0].id);  
+      setActiveVideoId(videos[safeInitialIndex].id);
+      currentIndexRef.current = safeInitialIndex;
+
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToOffset({
+          offset: safeInitialIndex * height,
+          animated: false,
+        });
+      });
     } catch (error) {
-      console.log('Fehler beim Laden der Videos:', error);
-      setFeedData([])
+      console.log('Fehler beim Laden gespeicherter Videos:', error);
+      setFeedData([]);
       setActiveVideoId(null);
-      setFeedError('Videos konnten nicht geladen werden.');
+      setFeedError('Gespeicherte Videos konnten nicht geladen werden.');
       setIsInitialLoading(false);
     }
-  }, []);
+  }, [initialIndex]);
 
-  useEffect(() => {
-    loadVideos();
-  }, [loadVideos]);
+  useFocusEffect(
+        useCallback(() => {
+            loadVideos();
+        }, [loadVideos])
+    );
 
   const handleInitialVideoReady = useCallback(() => {
     setIsInitialLoading(false);
@@ -80,6 +104,37 @@ export default function FeedScreen() {
     try {
       const newSavedState = await toggleVideoBookmark(id, video.saved);
 
+      if (!newSavedState) {
+        setFeedData((prevData) => {
+          const nextData = prevData.filter((item) => item.id !== id);
+
+          if (nextData.length === 0) {
+            setHasNoVideos(true);
+            setActiveVideoId(null);
+            return [];
+          }
+
+          const nextIndex = Math.min(
+            currentIndexRef.current,
+            nextData.length - 1
+          );
+
+          currentIndexRef.current = nextIndex;
+          setActiveVideoId(nextData[nextIndex].id);
+
+          requestAnimationFrame(() => {
+            flatListRef.current?.scrollToOffset({
+              offset: nextIndex * height,
+              animated: true,
+            });
+          });
+
+          return nextData;
+        });
+
+        return;
+      }
+
       setFeedData((prevData) =>
         prevData.map((item) =>
           item.id === id
@@ -88,7 +143,7 @@ export default function FeedScreen() {
         )
       );
     } catch (error) {
-      console.log('Fehler beim Speichern des Videos:', error);
+      console.log('Fehler beim Entfernen des gespeicherten Videos:', error);
     }
   }, [feedData]);
 
@@ -172,7 +227,9 @@ export default function FeedScreen() {
         setIsMuted={setIsMuted}
         onToggleSaved={() => handleToggleSaved(item.id)}
         onVideoReady={
-          index === 0 ? handleInitialVideoReady : undefined
+          index === currentIndexRef.current
+            ? handleInitialVideoReady
+            : undefined
         }
       />
     ),
@@ -201,13 +258,13 @@ export default function FeedScreen() {
   if (hasNoVideos) {
     return (
       <View style={styles.stateContainer}>
-        <Text style={styles.stateTitle}>Noch keine Videos</Text>
+        <Text style={styles.stateTitle}>Keine gespeicherten Videos</Text>
         <Text style={styles.stateText}>
-          Aktuell sind keine aktiven Videos verfügbar.
+          Du hast aktuell keine Videos in deiner Sammlung.
         </Text>
 
-        <Pressable style={styles.stateButton} onPress={loadVideos}>
-          <Text style={styles.stateButtonText}>Neu laden</Text>
+        <Pressable style={styles.stateButton} onPress={() => router.back()}>
+          <Text style={styles.stateButtonText}>Zurück</Text>
         </Pressable>
       </View>
     );
@@ -243,10 +300,14 @@ export default function FeedScreen() {
         />
       )}
 
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Feather name="chevron-left" size={26} color={COLORS.softGold} />
+      </Pressable>
+
       {isInitialLoading && (
         <View style={styles.loadingOverlay}>
           <Image
-            source={require('../../assets/images/grow-loading.jpeg')}
+            source={require('../assets/images/grow-loading.jpeg')}
             style={styles.loadingLogo}
             resizeMode="contain"
           />
@@ -261,7 +322,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#050505',
   },
-
+  backButton: {
+    position: 'absolute',
+    top: 56,
+    left: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#050505',
@@ -269,12 +343,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 999,
   },
-
   loadingLogo: {
     width: 180,
     height: 180,
   },
-
   stateContainer: {
     flex: 1,
     backgroundColor: '#050505',
@@ -282,21 +354,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 30,
   },
-
   stateTitle: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',
     marginBottom: 12,
+    textAlign: 'center',
   },
-
   stateText: {
     color: '#9c8f78',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
   },
-
   stateButton: {
     marginTop: 22,
     backgroundColor: '#D4AF37',
@@ -304,7 +374,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-
   stateButtonText: {
     color: '#000000',
     fontSize: 15,

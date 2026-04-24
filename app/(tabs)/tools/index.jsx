@@ -133,7 +133,10 @@ export default function ToolsScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <Pressable 
+      onPress={() => setMenuOpen(false)}
+      style={styles.screen}
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.leftHeader}>
@@ -163,14 +166,20 @@ export default function ToolsScreen() {
             </View>
 
             <Pressable
-              onPress={() => setMenuOpen(!menuOpen)}
+              onPress={(event) => {
+                event.stopPropagation();
+                setMenuOpen((prev) => (!prev));
+              }}
               style={styles.menuButton}
             >
               <Feather name="more-vertical" size={20} color={COLORS.softGold} />
             </Pressable>
 
             {menuOpen && (
-              <View style={styles.dropdown}>
+              <Pressable 
+                style={styles.dropdown}
+                onPress={(event) => event.stopPropagation()}
+              >
                 <Pressable onPress={() => router.push('/tools/saved-videos')}>
                   <Text style={styles.menuItem}>Gespeicherte Videos</Text>
                 </Pressable>
@@ -188,7 +197,7 @@ export default function ToolsScreen() {
                 <Pressable onPress={handleLogout}>
                   <Text style={styles.logoutItem}>Logout</Text>
                 </Pressable>
-              </View>
+              </Pressable>
             )}
           </View>
         </View>
@@ -253,7 +262,7 @@ export default function ToolsScreen() {
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
