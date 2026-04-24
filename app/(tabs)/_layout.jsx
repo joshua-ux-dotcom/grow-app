@@ -1,6 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Pressable } from 'react-native';
+import { ActivityIndicator, View, Pressable } from 'react-native';
+import { supabase } from '../../services/supabaseClient';
+import { useEffect, useState } from 'react';
 
 function TabIcon({ name, color, size, focused }) {
   return (
@@ -69,6 +71,39 @@ function CustomTabButton(props) {
 }
 
 export default function TabsLayout() {
+  const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
+  
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+
+      setHasSession(!!data.session);
+      setLoading(false);
+    }
+
+    checkSession();
+  }, []);
+
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#050505',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <ActivityIndicator color="#d4af37" />
+      </View>
+    );
+  }
+
+  if (!hasSession) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
