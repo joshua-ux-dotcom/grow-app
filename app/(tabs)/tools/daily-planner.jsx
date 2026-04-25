@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function GoalsScreen() {
+export default function dailyPlanner() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Daily Planner Screen</Text>

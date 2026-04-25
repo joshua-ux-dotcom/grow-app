@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function GoalsScreen() {
+export default function todoScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Goals Screen</Text>
+      <Text style={styles.text}>To-Do Screen</Text>
     </View>
   );
 }
