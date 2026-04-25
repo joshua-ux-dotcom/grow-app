@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
+  Dimensions,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +13,12 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../../constants/colors';
 import { getSavedVideos } from '../../../features/feed/services/videos';
+
+const { width } = Dimensions.get('window');
+const GAP = 3;
+const HORIZONTAL_PADDING = 18;
+const ITEM_WIDTH = (width - HORIZONTAL_PADDING * 2 - GAP * 2) / 3;
+const ITEM_HEIGHT = ITEM_WIDTH * 1.55;
 
 export default function SavedVideosScreen() {
   const [savedVideos, setSavedVideos] = useState([]);
@@ -96,27 +104,30 @@ export default function SavedVideosScreen() {
         <FlatList
           data={savedVideos}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          numColumns={3}
+          contentContainerStyle={styles.grid}
+          columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => (
             <Pressable
-              style={styles.videoCard}
+              style={styles.gridItem}
               onPress={() => openSavedFeed(index)}
             >
-              <View style={styles.thumbnail}>
-                <Ionicons name="play" size={26} color={COLORS.black} />
-              </View>
+              {item.thumbnail ? (
+                <Image
+                  source={{ uri: item.thumbnail }}
+                  style={styles.thumbnailImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.thumbnailFallback}>
+                  <Ionicons name="play" size={26} color={COLORS.black} />
+                </View>
+              )}
 
-              <View style={styles.videoInfo}>
-                <Text style={styles.videoTitle}>
-                  Gespeichertes Video {index + 1}
-                </Text>
-                <Text style={styles.videoSubtitle}>
-                  Tippen zum Öffnen im Saved Feed
-                </Text>
+              <View style={styles.playBadge}>
+                <Ionicons name="play" size={14} color={COLORS.paleGold} />
               </View>
-
-              <Ionicons name="bookmark" size={24} color={COLORS.gold} />
             </Pressable>
           )}
         />
@@ -130,7 +141,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.black,
     paddingTop: 66,
-    paddingHorizontal: 18,
+    paddingHorizontal: HORIZONTAL_PADDING,
   },
   header: {
     flexDirection: 'row',
@@ -165,41 +176,40 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 22,
   },
-  list: {
+  grid: {
     paddingBottom: 30,
   },
-  videoCard: {
-    minHeight: 86,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.goldBorder,
-    backgroundColor: COLORS.darkCard,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    marginBottom: 12,
+  row: {
+    gap: GAP,
+    marginBottom: GAP,
   },
-  thumbnail: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+  gridItem: {
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
+    backgroundColor: COLORS.darkCard,
+    overflow: 'hidden',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailFallback: {
+    width: '100%',
+    height: '100%',
     backgroundColor: COLORS.gold,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  videoInfo: {
-    flex: 1,
-  },
-  videoTitle: {
-    color: COLORS.paleGold,
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  videoSubtitle: {
-    color: '#a89881',
-    fontSize: 12,
+  playBadge: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stateBox: {
     flex: 1,

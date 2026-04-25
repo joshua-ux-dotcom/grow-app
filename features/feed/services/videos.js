@@ -42,7 +42,9 @@ export async function getActiveVideos() {
 
   return videos.map((video) => ({
     id: video.id,
+    title: video.title,
     source: video.video_url,
+    thumbnail: video.thumbnail_url,
     saved: bookmarkedVideoIds.includes(video.id),
   }));
 }
@@ -61,7 +63,9 @@ export async function getSavedVideos() {
       created_at,
       videos (
         id,
+        title,
         video_url,
+        thumbnail_url,
         is_active
       )
     `)
@@ -76,7 +80,9 @@ export async function getSavedVideos() {
     .filter((bookmark) => bookmark.videos?.is_active)
     .map((bookmark) => ({
       id: bookmark.videos.id,
+      title: bookmark.videos.title,
       source: bookmark.videos.video_url,
+      thumbnail: bookmark.videos.thumbnail_url,
       saved: true,
       savedAt: bookmark.created_at,
     }));
