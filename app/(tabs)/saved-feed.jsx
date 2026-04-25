@@ -16,12 +16,12 @@ import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
-import FeedItem from '../features/feed/components/FeedItem';
+import FeedItem from '../../features/feed/components/FeedItem';
 import {
   getSavedVideos,
   toggleVideoBookmark,
-} from '../features/feed/services/videos';
-import { COLORS } from '../constants/colors';
+} from '../../features/feed/services/videos';
+import { COLORS } from '../../constants/colors';
 
 const { height } = Dimensions.get('window');
 
@@ -307,7 +307,7 @@ export default function SavedFeedScreen() {
       {isInitialLoading && (
         <View style={styles.loadingOverlay}>
           <Image
-            source={require('../assets/images/grow-loading.jpeg')}
+            source={require('../../assets/images/grow-loading.jpeg')}
             style={styles.loadingLogo}
             resizeMode="contain"
           />
@@ -320,7 +320,7 @@ export default function SavedFeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: COLORS.background,
   },
   backButton: {
     position: 'absolute',
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#050505',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
@@ -349,33 +349,33 @@ const styles = StyleSheet.create({
   },
   stateContainer: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
   },
   stateTitle: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 24,
     fontWeight: '700',
     marginBottom: 12,
     textAlign: 'center',
   },
   stateText: {
-    color: '#9c8f78',
+    color: COLORS.mutedGold,
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
   },
   stateButton: {
     marginTop: 22,
-    backgroundColor: '#D4AF37',
+    backgroundColor: COLORS.gold,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
   },
   stateButtonText: {
-    color: '#000000',
+    color: COLORS.black,
     fontSize: 15,
     fontWeight: '700',
   },

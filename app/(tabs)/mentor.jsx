@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 import ScreenContainer from '../../components/ui/ScreenContainer';
 import AppButton from '../../components/ui/AppButton';
+import { COLORS } from '../../constants/colors';
 
 const BENEFITS = [
   {
@@ -11,7 +12,7 @@ const BENEFITS = [
     title: 'Personalisiert',
     text: 'Antworten, die zu dir passen.',
     renderIcon: (scale) => (
-      <Ionicons name="person-outline" size={18 * scale} color="#d7ab56" />
+      <Ionicons name="person-outline" size={18 * scale} color={COLORS.dimGold}/>
     ),
   },
   {
@@ -19,7 +20,7 @@ const BENEFITS = [
     title: 'Intelligent',
     text: 'Lernt aus deinem Verhalten.',
     renderIcon: (scale) => (
-      <MaterialCommunityIcons name="brain" size={18 * scale} color="#d7ab56" />
+      <MaterialCommunityIcons name="brain" size={18 * scale} color={COLORS.dimGold} />
     ),
   },
   {
@@ -27,7 +28,7 @@ const BENEFITS = [
     title: 'Vertraulich',
     text: 'Deine Daten bleiben privat.',
     renderIcon: (scale) => (
-      <Feather name="shield" size={18 * scale} color="#d7ab56" />
+      <Feather name="shield" size={18 * scale} color={COLORS.dimGold} />
     ),
   },
 ];
@@ -198,12 +199,12 @@ export default function KIMentorScreen() {
               <MaterialCommunityIcons
                 name="head-outline"
                 size={68 * scale}
-                color="#efc978"
+                color={COLORS.warmGold}
               />
               <MaterialCommunityIcons
                 name="tree-outline"
                 size={18 * scale}
-                color="#efc978"
+                color={COLORS.warmGold}
                 style={styles.treeIcon}
               />
             </View>
@@ -253,7 +254,7 @@ export default function KIMentorScreen() {
                   },
                 ]}
               >
-                <Feather name="tool" size={17 * scale} color="#efc978" />
+                <Feather name="tool" size={17 * scale} color={COLORS.warmGold} />
               </View>
 
               <View style={styles.buildTextWrap}>
@@ -308,7 +309,7 @@ export default function KIMentorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#05060a',
+    backgroundColor: COLORS.backgroundCard,
   },
   content: {
     flex: 1,
@@ -316,16 +317,16 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    color: '#d7ab56',
+    color: COLORS.dimGold,
     fontWeight: '800',
     textAlign: 'center',
     letterSpacing: 1,
   },
 
   heroCard: {
-    backgroundColor: '#090b11',
+    backgroundColor: COLORS.darkCard5,
     borderWidth: 1,
-    borderColor: '#2c2432',
+    borderColor: COLORS.borderSubtle,
   },
   heroTop: {
     flexDirection: 'row',
@@ -335,25 +336,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overline: {
-    color: '#d7ab56',
+    color: COLORS.dimGold,
     fontWeight: '700',
   },
   title: {
-    color: '#f7f0df',
+    color: COLORS.paleGold,
     fontWeight: '800',
   },
   badge: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#7f6236',
-    backgroundColor: '#120d19',
+    borderColor: COLORS.goldBorder,
+    backgroundColor: COLORS.darkCard2,
   },
   badgeText: {
-    color: '#e8c978',
+    color: COLORS.warmGold,
     fontWeight: '600',
   },
   intro: {
-    color: '#c9b79b',
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
 
@@ -368,9 +369,9 @@ const styles = StyleSheet.create({
   },
 
   benefitsCard: {
-    backgroundColor: '#0d0f16',
+    backgroundColor: COLORS.darkCard5,
     borderWidth: 1,
-    borderColor: '#24202b',
+    borderColor: COLORS.borderDeep,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
@@ -381,25 +382,25 @@ const styles = StyleSheet.create({
   },
   benefitIconWrap: {
     borderWidth: 1,
-    borderColor: '#7f6236',
-    backgroundColor: '#120d19',
+    borderColor: COLORS.goldBorder,
+    backgroundColor: COLORS.darkCard2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   benefitTitle: {
-    color: '#f4e7c5',
+    color: COLORS.paleGold,
     fontWeight: '700',
     textAlign: 'center',
   },
   benefitText: {
-    color: '#a89881',
+    color: COLORS.textMuted,
     textAlign: 'center',
   },
 
   buildCard: {
-    backgroundColor: '#0d0d12',
+    backgroundColor: COLORS.darkCard4,
     borderWidth: 1,
-    borderColor: '#a67931',
+    borderColor: COLORS.goldBorderLight,
   },
   buildTopRow: {
     flexDirection: 'row',
@@ -407,8 +408,8 @@ const styles = StyleSheet.create({
   },
   buildIconCircle: {
     borderWidth: 1,
-    borderColor: '#7f6236',
-    backgroundColor: '#171219',
+    borderColor: COLORS.goldBorder,
+    backgroundColor: COLORS.darkCard3,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,10 +417,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buildTitle: {
-    color: '#f3d58b',
+    color: COLORS.lightGold,
     fontWeight: '800',
   },
   buildText: {
-    color: '#c2b095',
+    color: COLORS.textMuted,
   },
 });

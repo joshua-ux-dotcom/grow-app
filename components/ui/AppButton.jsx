@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { COLORS } from '../../constants/colors';
 
 export default function AppButton({
   title,
@@ -28,8 +29,8 @@ const styles = StyleSheet.create({
     minHeight: 36,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#b78a3b',
-    backgroundColor: '#151018',
+    borderColor: COLORS.goldBorderLight,
+    backgroundColor: COLORS.darkCard3,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   text: {
-    color: '#f3d58b',
+    color: COLORS.lightGold,
     fontSize: 13,
     fontWeight: '700',
   },

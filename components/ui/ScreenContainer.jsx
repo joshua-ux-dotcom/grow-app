@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../../constants/colors';
 
 export default function ScreenContainer({ children, style }) {
   return (
@@ -12,11 +13,11 @@ export default function ScreenContainer({ children, style }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#05060a',
+    backgroundColor: COLORS.backgroundCard,
   },
   container: {
     flex: 1,
-    backgroundColor: '#05060a',
+    backgroundColor: COLORS.backgroundCard,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 10,

@@ -1,3 +1,5 @@
+import { COLORS } from '../constants/colors';
+
 export const tools = [
   {
     id: 'todo',
@@ -5,7 +7,7 @@ export const tools = [
     description: 'Plane deinen Tag.',
     type: 'Ionicons',
     name: 'checkmark-outline',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/todo',
   },
   {
@@ -14,7 +16,7 @@ export const tools = [
     description: 'Erstelle Trainingstage.',
     type: 'MaterialCommunityIcons',
     name: 'dumbbell',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/training-plan',
   },
   {
@@ -23,7 +25,7 @@ export const tools = [
     description: 'Setze große Ziele.',
     type: 'Feather',
     name: 'target',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/goals',
   },
   {
@@ -32,7 +34,7 @@ export const tools = [
     description: 'Baue Streaks auf.',
     type: 'Ionicons',
     name: 'flame-outline',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/habits',
   },
   {
@@ -41,7 +43,7 @@ export const tools = [
     description: 'Fokus ohne Ablenkungen',
     type: 'Feather',
     name: 'clock',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/deep-work',
   },
   {
@@ -50,7 +52,7 @@ export const tools = [
     description: 'Strukturiere deinen Tag.',
     type: 'Ionicons',
     name: 'calendar-outline',
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     route: '/tools/daily-planner',
   },
   {
@@ -59,7 +61,7 @@ export const tools = [
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',
     name: 'tool',
-    color: '#d6d0db',
+    color: COLORS.textSecondary,
     disabled: true,
   },
   {
@@ -68,7 +70,7 @@ export const tools = [
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',
     name: 'tool',
-    color: '#d6d0db',
+    color: COLORS.textSecondary,
     disabled: true,
   },
   {
@@ -77,7 +79,7 @@ export const tools = [
     description: 'Bleib dran – hier entsteht etwas Großes.',
     type: 'Feather',
     name: 'tool',
-    color: '#d6d0db',
+    color: COLORS.textSecondary,
     disabled: true,
   },
 ];

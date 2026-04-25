@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../../../constants/colors';
 
 export default function FeedbackTypeButton({
   label,
@@ -32,27 +33,27 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#332A40',
+    borderColor: COLORS.borderMid,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#130F19',
+    backgroundColor: COLORS.darkCard3,
   },
   buttonActive: {
-    borderColor: '#D4AF37',
+    borderColor: COLORS.gold,
     backgroundColor: 'rgba(212,175,55,0.12)',
-    shadowColor: '#D4AF37',
+    shadowColor: COLORS.gold,
     shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
   },
   text: {
-    color: '#AAA3B5',
+    color: COLORS.textDim,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
   textActive: {
-    color: '#F2D37A',
+    color: COLORS.lightGold,
   },
 });

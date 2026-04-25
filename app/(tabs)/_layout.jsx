@@ -70,7 +70,7 @@ export default function TabsLayout() {
           right: 16,
           bottom: 1,
           height: 68,
-          backgroundColor: '#0b0b0b',
+          backgroundColor: COLORS.darkTabBar,
           borderTopWidth: 0,
           borderRadius: 34,
           paddingTop: 10,
@@ -117,6 +117,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="mail-outline" color={color} size={18} focused={focused} />
           ),
+        }}
+      />
+
+      {/* Stack-Screen innerhalb der Tab-Gruppe — kein Tab-Eintrag */}
+      <Tabs.Screen
+        name="saved-feed"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { COLORS } from '../../constants/colors';
 
 export default function ToolCard({
   icon,
@@ -48,21 +49,21 @@ export default function ToolCard({
 
 const styles = StyleSheet.create({
   card: {
-  width: '31.5%',
-  backgroundColor: '#0d0913',
-  borderWidth: 1,
-  borderColor: '#7f6236',
-  borderRadius: 16,
-  paddingVertical: 8,
-  paddingHorizontal: 6,
-  marginBottom: 8,
-  minHeight: 118,
-  justifyContent: 'center',
-  alignItems: 'center',
-  position: 'relative',
+    width: '31.5%',
+    backgroundColor: COLORS.darkCard,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    marginBottom: 8,
+    minHeight: 118,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   cardDisabled: {
-    borderColor: '#4f4a54',
+    borderColor: COLORS.borderStrong,
     backgroundColor: '#0a0a0d',
   },
   cardPressed: {
@@ -78,26 +79,26 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#1a1320',
     borderWidth: 1,
-    borderColor: '#7f6236',
+    borderColor: COLORS.goldBorder,
   },
   badgeText: {
-    color: '#f2dfb4',
+    color: COLORS.softGold,
     fontSize: 9.5,
     fontWeight: '700',
   },
   iconWrapper: {
-  width: 38,
-  height: 38,
-  borderRadius: 19,
-  borderWidth: 1,
-  borderColor: '#7f6236',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: 7,
-  backgroundColor: '#120d19',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 7,
+    backgroundColor: COLORS.darkCard2,
   },
   iconWrapperDisabled: {
-    borderColor: '#4f4a54',
+    borderColor: COLORS.borderStrong,
     backgroundColor: '#111116',
   },
   icon: {
@@ -107,17 +108,17 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   title: {
-    color: '#f4e7c5',
+    color: COLORS.paleGold,
     fontSize: 11.5,
     fontWeight: '700',
     marginBottom: 3,
     textAlign: 'center',
   },
   titleDisabled: {
-    color: '#d6d0db',
+    color: COLORS.textSecondary,
   },
   description: {
-    color: '#a89881',
+    color: COLORS.textMuted,
     fontSize: 8.8,
     lineHeight: 11,
     textAlign: 'center',

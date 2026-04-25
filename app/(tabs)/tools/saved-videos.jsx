@@ -49,7 +49,7 @@ export default function SavedVideosScreen() {
 
   function openSavedFeed(index) {
     router.push({
-      pathname: '/saved-feed',
+      pathname: '/(tabs)/saved-feed',
       params: {
         initialIndex: String(index),
       },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   topLabel: {
-    color: '#a07d47',
+    color: COLORS.dimGold,
     fontSize: 10,
     letterSpacing: 2,
     marginBottom: 3,

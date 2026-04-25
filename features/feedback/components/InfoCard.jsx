@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../../../constants/colors';
 
 export default function InfoCard({ icon, title, text }) {
   return (
@@ -14,10 +15,10 @@ export default function InfoCard({ icon, title, text }) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#15111C',
+    backgroundColor: COLORS.darkCard3,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2A2335',
+    borderColor: COLORS.borderSubtle,
     padding: 12,
     minHeight: 120,
     justifyContent: 'space-between',
@@ -26,13 +27,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
   },
   text: {
-    color: '#8E8998',
+    color: COLORS.textDim,
     fontSize: 11,
     lineHeight: 15,
   },
