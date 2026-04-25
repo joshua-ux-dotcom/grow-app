@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   error: {
-    color: '#ff7a7a',
+    color: COLORS.errorLight,
     marginTop: 14,
     fontSize: 13,
     textAlign: 'center',

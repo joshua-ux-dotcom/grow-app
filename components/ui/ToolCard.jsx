@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   cardDisabled: {
     borderColor: COLORS.borderStrong,
-    backgroundColor: '#0a0a0d',
+    backgroundColor: COLORS.darkCard,
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: '#1a1320',
+    backgroundColor: COLORS.darkCard3,
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
   },
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   iconWrapperDisabled: {
     borderColor: COLORS.borderStrong,
-    backgroundColor: '#111116',
+    backgroundColor: COLORS.darkCard3,
   },
   icon: {
     fontSize: 17,
@@ -124,6 +124,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   descriptionDisabled: {
-    color: '#8a8591',
+    color: COLORS.textDim,
   },
 });

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   text: {
-    color: '#d1c6ae',
+    color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 22,
   },

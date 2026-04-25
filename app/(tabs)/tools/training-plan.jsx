@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../../../constants/colors';
 
 export default function trainingScreen() {
   return (
@@ -11,12 +12,12 @@ export default function trainingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#06040a',
+    backgroundColor: COLORS.darkCard,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    color: '#f4e7c5',
+    color: COLORS.paleGold,
     fontSize: 24,
     fontWeight: '700',
   },

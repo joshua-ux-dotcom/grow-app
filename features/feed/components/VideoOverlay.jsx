@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { COLORS } from '../../../constants/colors';
 
 const { height } = Dimensions.get('window');
 
@@ -38,9 +39,9 @@ export default function VideoOverlay({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {saved ? (
-            <Ionicons name="bookmark" size={31} color="#D4AF37" />
+            <Ionicons name="bookmark" size={31} color={COLORS.gold} />
           ) : (
-            <Feather name="bookmark" size={31} color="#D4AF37" />
+            <Feather name="bookmark" size={31} color={COLORS.gold} />
           )}
         </TouchableOpacity>
 
@@ -61,7 +62,7 @@ export default function VideoOverlay({
             <Ionicons
               name={isMuted ? 'volume-mute' : 'volume-high'}
               size={18}
-              color="#fff"
+              color={COLORS.white}
             />
           </TouchableOpacity>
 
@@ -70,7 +71,7 @@ export default function VideoOverlay({
             onPress={onResume}
             activeOpacity={0.85}
           >
-            <Ionicons name="play" size={34} color="#fff" />
+            <Ionicons name="play" size={34} color={COLORS.white} />
           </TouchableOpacity>
         </View>
       )}
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 58,
     alignSelf: 'center',
-    color: '#D4AF37',
+    color: COLORS.gold,
     fontSize: 17,
     letterSpacing: 4,
     fontWeight: '600',
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 1.7,
-    borderColor: '#D4AF37',
+    borderColor: COLORS.gold,
     marginBottom: 18,
     justifyContent: 'center',
     alignItems: 'center',
@@ -166,10 +167,10 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#D4AF37',
+    backgroundColor: COLORS.gold,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOpacity: 0.22,
     shadowRadius: 6,
     shadowOffset: {
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   },
 
   pointBubbleText: {
-    color: '#111111',
+    color: COLORS.nearBlack,
     fontSize: 11,
     fontWeight: '800',
   },

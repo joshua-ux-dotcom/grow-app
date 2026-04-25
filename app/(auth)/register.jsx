@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   error: {
-    color: '#ff7a7a',
+    color: COLORS.errorLight,
     marginTop: 12,
     textAlign: 'center',
   },
