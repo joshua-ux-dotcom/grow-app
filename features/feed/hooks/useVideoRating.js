@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchRating, upsertRating } from '../services/ratings';
  
 export const RATINGS = [
-  { key: 'thumbs_down', emoji: '👎' },
-  { key: 'neutral',     emoji: '😐' },
-  { key: 'thumbs_up',   emoji: '👍' },
   { key: 'fire',        emoji: '🔥' },
+  { key: 'thumbs_up',   emoji: '👍' },
+  { key: 'neutral',     emoji: '😐' },
+  { key: 'thumbs_down', emoji: '👎' },
 ];
  
 export function useVideoRating({ userId, videoId, isActive }) {
