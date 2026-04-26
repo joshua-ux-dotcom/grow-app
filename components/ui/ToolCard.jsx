@@ -1,19 +1,14 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../constants/colors';
-
-export default function ToolCard({
-  icon,
-  title,
-  description,
-  onPress,
-  disabled = false,
-  badgeText,
-}) {
+import { s, sv, sf } from '../../constants/layout';
+ 
+export default function ToolCard({ icon, title, description, onPress, disabled = false, badgeText }) {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
         disabled && styles.cardDisabled,
+        disabled && styles.cardDisabledHeight,
         pressed && !disabled && styles.cardPressed,
       ]}
       onPress={onPress}
@@ -24,7 +19,7 @@ export default function ToolCard({
           <Text style={styles.badgeText}>{badgeText}</Text>
         </View>
       ) : null}
-
+ 
       <View style={[styles.iconWrapper, disabled && styles.iconWrapperDisabled]}>
         {typeof icon === 'string' ? (
           <Text style={[styles.icon, disabled && styles.iconDisabled]}>{icon}</Text>
@@ -32,35 +27,36 @@ export default function ToolCard({
           icon
         )}
       </View>
-
+ 
       <Text style={[styles.title, disabled && styles.titleDisabled]} numberOfLines={2}>
         {title}
       </Text>
-
-      <Text
-        style={[styles.description, disabled && styles.descriptionDisabled]}
-        numberOfLines={2}
-      >
-        {description}
-      </Text>
+      {!!description && (
+        <Text style={[styles.description, disabled && styles.descriptionDisabled]} numberOfLines={2}>
+          {description}
+        </Text>
+      )}
     </Pressable>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   card: {
     width: '31.5%',
     backgroundColor: COLORS.darkCard,
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    marginBottom: 8,
-    minHeight: 118,
+    borderRadius: s(16),
+    paddingVertical: sv(8),
+    paddingHorizontal: s(6),
+    marginBottom: sv(8),
+    minHeight: sv(118),
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+  },
+  cardDisabledHeight: {
+    minHeight: sv(80),
   },
   cardDisabled: {
     borderColor: COLORS.borderStrong,
@@ -72,10 +68,10 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    top: sv(8),
+    right: s(8),
+    paddingHorizontal: s(7),
+    paddingVertical: sv(3),
     borderRadius: 999,
     backgroundColor: COLORS.darkCard3,
     borderWidth: 1,
@@ -83,47 +79,39 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: COLORS.softGold,
-    fontSize: 9.5,
+    fontSize: sf(9.5),
     fontWeight: '700',
   },
   iconWrapper: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: s(38),
+    height: s(38),
+    borderRadius: s(19),
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 7,
+    marginBottom: sv(7),
     backgroundColor: COLORS.darkCard2,
   },
   iconWrapperDisabled: {
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.darkCard3,
   },
-  icon: {
-    fontSize: 17,
-  },
-  iconDisabled: {
-    opacity: 0.8,
-  },
+  icon: { fontSize: sf(17) },
+  iconDisabled: { opacity: 0.8 },
   title: {
     color: COLORS.paleGold,
-    fontSize: 11.5,
+    fontSize: sf(11.5),
     fontWeight: '700',
-    marginBottom: 3,
+    marginBottom: sv(3),
     textAlign: 'center',
   },
-  titleDisabled: {
-    color: COLORS.textSecondary,
-  },
+  titleDisabled: { color: COLORS.textSecondary },
   description: {
     color: COLORS.textMuted,
-    fontSize: 8.8,
-    lineHeight: 11,
+    fontSize: sf(8.8),
+    lineHeight: sf(11),
     textAlign: 'center',
   },
-  descriptionDisabled: {
-    color: COLORS.textDim,
-  },
+  descriptionDisabled: { color: COLORS.textDim },
 });

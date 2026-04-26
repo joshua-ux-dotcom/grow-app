@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { s, sv, sf } from '../../constants/layout'
  
 export default function TrackerBox({ value, label }) {
   return (
@@ -16,23 +17,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.darkCard,
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
-    borderRadius: 14,
-    minHeight: 76,
+    borderRadius: s(14),
+    minHeight: sv(76),
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 8,
+    paddingHorizontal: s(6),
+    paddingVertical: sv(8),
   },
   value: {
     color: COLORS.softGold,
-    fontSize: 16,
+    fontSize: sf(16),
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: sv(4),
   },
   label: {
     color: COLORS.mutedGold,
-    fontSize: 10,
+    fontSize: sf(10),
     textAlign: 'center',
-    lineHeight: 13,
+    lineHeight: sf(13),
   },
 });

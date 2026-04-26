@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
-
+import { s, sv } from '../../constants/layout';
+ 
 export default function ScreenContainer({ children, style }) {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -9,7 +10,7 @@ export default function ScreenContainer({ children, style }) {
     </SafeAreaView>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -18,8 +19,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundCard,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: s(14),
+    paddingTop: sv(10),
+    paddingBottom: sv(10),
   },
 });

@@ -58,7 +58,7 @@ export const tools = [
   {
     id: 'comming-soon-1',
     title: 'In Bearbeitung',
-    description: 'Bleib dran – hier entsteht etwas Großes.',
+    description: '',
     type: 'Feather',
     name: 'tool',
     color: COLORS.textSecondary,
@@ -67,7 +67,7 @@ export const tools = [
   {
     id: 'comming-soon-2',
     title: 'In Bearbeitung',
-    description: 'Bleib dran – hier entsteht etwas Großes.',
+    description: '',
     type: 'Feather',
     name: 'tool',
     color: COLORS.textSecondary,
@@ -76,7 +76,7 @@ export const tools = [
   {
     id: 'comming-soon-3',
     title: 'In Bearbeitung',
-    description: 'Bleib dran – hier entsteht etwas Großes.',
+    description: '',
     type: 'Feather',
     name: 'tool',
     color: COLORS.textSecondary,

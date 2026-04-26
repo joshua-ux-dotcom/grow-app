@@ -5,10 +5,10 @@
     "slug": "Grow",
     "version": "1.0.3",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "app.joingrow.grow",
       "buildNumber": "7",
       "infoPlist": {
@@ -16,7 +16,12 @@
       }
     },
     "android": {
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "statusBar": {
+        "backgroundColor": "#050505",
+        "barStyle": "light-content",
+        "translucent": true
+      }
     },
     "plugins": [
       "expo-router",

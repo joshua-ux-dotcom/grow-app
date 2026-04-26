@@ -11,15 +11,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-
+ 
 import InfoCard from '../../features/feedback/components/InfoCard';
 import FeedbackTypeButton from '../../features/feedback/components/FeedbackTypeButton';
 import ImportanceButton from '../../features/feedback/components/ImportanceButton';
 import { useFeedbackForm } from '../../features/feedback/hooks/useFeedbackForm';
 import { COLORS } from '../../constants/colors';
-
+import { s, sv, sf } from '../../constants/layout';
+ 
 const feedbackTypes = ['Idee / Vorschlag', 'Bug melden', 'Lob & Dank'];
-
+ 
 export default function FeedbackScreen() {
   const {
     selectedType,
@@ -37,7 +38,7 @@ export default function FeedbackScreen() {
     handleSend,
     clearStatus,
   } = useFeedbackForm();
-
+ 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -45,7 +46,7 @@ export default function FeedbackScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.growTitle}>GROW</Text>
-
+ 
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrapper}>
             <Text style={styles.title}>Feedback</Text>
@@ -54,7 +55,7 @@ export default function FeedbackScreen() {
               Hilf uns, GROW jeden Tag ein Stück besser zu machen.
             </Text>
           </View>
-
+ 
           <View style={styles.headerIconContainer}>
             <Ionicons
               name="chatbubble-ellipses-outline"
@@ -63,7 +64,7 @@ export default function FeedbackScreen() {
             />
           </View>
         </View>
-
+ 
         <View style={styles.topCardsContainer}>
           <InfoCard
             icon={<Ionicons name="bulb-outline" size={22} color={COLORS.gold} />}
@@ -81,9 +82,9 @@ export default function FeedbackScreen() {
             text="Gib Feedback & sammle Grow Points."
           />
         </View>
-
+ 
         <Text style={styles.sectionTitle}>WAS MÖCHTEST DU FEEDBACK GEBEN?</Text>
-
+ 
         <View style={styles.feedbackTypeRow}>
           {feedbackTypes.map((type) => (
             <FeedbackTypeButton
@@ -97,9 +98,9 @@ export default function FeedbackScreen() {
             />
           ))}
         </View>
-
+ 
         <Text style={styles.sectionTitle}>WIE KÖNNEN WIR GROW VERBESSERN?</Text>
-
+ 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -115,12 +116,12 @@ export default function FeedbackScreen() {
           />
           <Text style={styles.counter}>{text.length}/500</Text>
         </View>
-
+ 
         <Text style={styles.sectionTitle}>WIE WICHTIG IST DIR DAS?</Text>
         <Text style={styles.smallDescription}>
           Deine Einschätzung hilft uns zu priorisieren.
         </Text>
-
+ 
         <View style={styles.importanceRow}>
           {[1, 2, 3, 4].map((item) => (
             <ImportanceButton
@@ -134,17 +135,17 @@ export default function FeedbackScreen() {
             />
           ))}
         </View>
-
+ 
         <View style={styles.importanceLabels}>
           <Text style={styles.importanceLabel}>Nicht wichtig</Text>
           <Text style={styles.importanceLabel}>Sehr wichtig</Text>
         </View>
-
+ 
         <Text style={styles.sectionTitle}>SCREENSHOT HINZUFÜGEN (OPTIONAL)</Text>
         <Text style={styles.smallDescription}>
           Ein Bild sagt mehr als 1.000 Worte.
         </Text>
-
+ 
         <TouchableOpacity
           style={styles.uploadBox}
           onPress={handlePickImage}
@@ -156,14 +157,14 @@ export default function FeedbackScreen() {
           </Text>
           <Text style={styles.uploadSubtext}>PNG, JPG bis 5 MB</Text>
         </TouchableOpacity>
-
+ 
         {selectedImage && (
           <View style={styles.previewWrap}>
             <Image
               source={{ uri: selectedImage.uri }}
               style={styles.previewImage}
             />
-
+ 
             <TouchableOpacity
               onPress={handleRemoveImage}
               style={styles.removeImageButton}
@@ -172,7 +173,7 @@ export default function FeedbackScreen() {
             </TouchableOpacity>
           </View>
         )}
-
+ 
         <TouchableOpacity
           style={[styles.sendButton, sending && styles.sendButtonDisabled]}
           onPress={handleSend}
@@ -190,15 +191,15 @@ export default function FeedbackScreen() {
             </>
           )}
         </TouchableOpacity>
-
+ 
         {sendSuccess && (
           <Text style={styles.successText}>
             Dein Feedback wurde gespeichert. Du hast 5 Grow Points erhalten.
           </Text>
         )}
-
+ 
         {sendError && <Text style={styles.errorText}>{sendError}</Text>}
-
+ 
         <Text style={styles.footerText}>
           Danke, dass du Grow besser machst. 🙏
         </Text>
@@ -206,21 +207,21 @@ export default function FeedbackScreen() {
     </SafeAreaView>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.backgroundDeep,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: s(20),
     paddingTop: 18,
     paddingBottom: 40,
   },
   growTitle: {
     textAlign: 'center',
     color: COLORS.gold,
-    fontSize: 15,
+    fontSize: sf(15),
     letterSpacing: 3,
     marginBottom: 18,
   },
@@ -236,16 +237,16 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 34,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: sv(4),
   },
   subtitle: {
     color: COLORS.textSecondary,
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: sf(14),
+    marginBottom: sv(4),
   },
   description: {
     color: COLORS.textDim,
-    fontSize: 13,
+    fontSize: sf(13),
     lineHeight: 18,
   },
   headerIconContainer: {
@@ -264,20 +265,20 @@ const styles = StyleSheet.create({
   },
   topCardsContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: s(10),
     marginBottom: 26,
   },
   sectionTitle: {
     color: COLORS.white,
-    fontSize: 13,
+    fontSize: sf(13),
     fontWeight: '700',
     letterSpacing: 0.8,
-    marginBottom: 12,
-    marginTop: 4,
+    marginBottom: sv(12),
+    marginTop: sv(4),
   },
   feedbackTypeRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: s(10),
     marginBottom: 28,
   },
   inputContainer: {
@@ -291,25 +292,25 @@ const styles = StyleSheet.create({
   },
   input: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: sf(14),
     minHeight: 90,
     textAlignVertical: 'top',
   },
   counter: {
     alignSelf: 'flex-end',
     color: COLORS.textFaint,
-    fontSize: 12,
-    marginTop: 10,
+    fontSize: sf(12),
+    marginTop: sv(10),
   },
   smallDescription: {
     color: COLORS.textDim,
-    fontSize: 12,
-    marginBottom: 14,
+    fontSize: sf(12),
+    marginBottom: sv(14),
   },
   importanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: sv(10),
   },
   importanceLabels: {
     flexDirection: 'row',
@@ -318,64 +319,64 @@ const styles = StyleSheet.create({
   },
   importanceLabel: {
     color: COLORS.textDim,
-    fontSize: 11,
+    fontSize: sf(11),
   },
   uploadBox: {
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: COLORS.borderMid,
-    borderRadius: 16,
+    borderRadius: s(16),
     paddingVertical: 24,
     alignItems: 'center',
     marginBottom: 30,
     backgroundColor: COLORS.darkCard3,
   },
   previewWrap: {
-    marginTop: 12,
+    marginTop: sv(12),
   },
   previewImage: {
     width: '100%',
     height: 180,
-    borderRadius: 14,
+    borderRadius: s(14),
   },
   removeImageButton: {
-    marginTop: 10,
+    marginTop: sv(10),
     alignSelf: 'flex-start',
   },
   removeImageText: {
     color: COLORS.textSecondary,
-    fontSize: 13,
+    fontSize: sf(13),
   },
   uploadTitle: {
     color: COLORS.lightGold,
-    fontSize: 14,
+    fontSize: sf(14),
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: sv(8),
   },
   uploadSubtext: {
     color: COLORS.textDim,
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: sf(11),
+    marginTop: sv(4),
   },
   sendButton: {
     backgroundColor: COLORS.gold,
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: s(16),
+    paddingVertical: sv(16),
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: s(8),
     marginBottom: 18,
   },
   sendButtonText: {
     color: COLORS.nearBlack,
-    fontSize: 16,
+    fontSize: sf(16),
     fontWeight: '700',
   },
   footerText: {
     textAlign: 'center',
     color: COLORS.textSecondary,
-    fontSize: 12,
+    fontSize: sf(12),
   },
   sendButtonDisabled: {
     opacity: 0.7,
@@ -383,15 +384,15 @@ const styles = StyleSheet.create({
   successText: {
     textAlign: 'center',
     color: COLORS.gold,
-    fontSize: 13,
+    fontSize: sf(13),
     lineHeight: 18,
-    marginBottom: 14,
+    marginBottom: sv(14),
   },
   errorText: {
     textAlign: 'center',
     color: COLORS.error,
-    fontSize: 13,
+    fontSize: sf(13),
     lineHeight: 18,
-    marginBottom: 14,
+    marginBottom: sv(14),
   },
 });

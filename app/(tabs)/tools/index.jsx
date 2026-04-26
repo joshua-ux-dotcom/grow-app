@@ -3,12 +3,13 @@ import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
  
-import ToolCard from '../../../components/ui/ToolCard';
-import TrackerBox from '../../../components/ui/TrackerBox';
+import ToolCard from '../../../components/ui/ToolCard'
+import TrackerBox from '../../../components/ui/Trackerbox';
 import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
 import { useProfile } from '../../../features/profile/hooks/useProfile';
+import { s, sv, sf } from '../../../constants/layout';
  
 const TRACKER_ITEMS = [
   { value: '7', label: 'Tage Streak' },
@@ -19,11 +20,11 @@ const TRACKER_ITEMS = [
  
 function renderToolIcon(tool) {
   if (tool.type === 'Ionicons')
-    return <Ionicons name={tool.name} size={20} color={tool.color} />;
+    return <Ionicons name={tool.name} size={s(20)} color={tool.color} />;
   if (tool.type === 'MaterialCommunityIcons')
-    return <MaterialCommunityIcons name={tool.name} size={20} color={tool.color} />;
+    return <MaterialCommunityIcons name={tool.name} size={s(20)} color={tool.color} />;
   if (tool.type === 'Feather')
-    return <Feather name={tool.name} size={20} color={tool.color} />;
+    return <Feather name={tool.name} size={s(20)} color={tool.color} />;
   return null;
 }
  
@@ -69,7 +70,7 @@ export default function ToolsScreen() {
               onPress={(e) => { e.stopPropagation(); setMenuOpen((p) => !p); }}
               style={styles.menuButton}
             >
-              <Feather name="more-vertical" size={20} color={COLORS.softGold} />
+              <Feather name="more-vertical" size={s(20)} color={COLORS.softGold} />
             </Pressable>
  
             {menuOpen && (
@@ -117,7 +118,7 @@ export default function ToolsScreen() {
         <View style={styles.mentorCard}>
           <View style={styles.mentorLeft}>
             <View style={styles.mentorIconWrap}>
-              <Ionicons name="sparkles-outline" size={28} color={COLORS.softGold} />
+              <Ionicons name="sparkles-outline" size={s(28)} color={COLORS.softGold} />
             </View>
             <View style={styles.mentorTextBox}>
               <Text style={styles.mentorTitle}>KI Mentor</Text>
@@ -156,16 +157,16 @@ const styles = StyleSheet.create({
   },
   content: { 
     flex: 1, 
-    paddingTop: 66, 
-    paddingHorizontal: 14, 
-    paddingBottom: 8 
+    paddingTop: sv(66), 
+    paddingHorizontal: s(14), 
+    paddingBottom: sv(100) 
   },
   header: { 
     flexDirection: 'row', 
     alignItems: 'flex-end', 
     justifyContent: 'space-between', 
-    marginBottom: 16, 
-    paddingHorizontal: 2 
+    marginBottom: sv(16), 
+    paddingHorizontal: s(2) 
   },
   leftHeader: { 
     flexDirection: 'row', 
@@ -173,31 +174,31 @@ const styles = StyleSheet.create({
     flex: 1 
   },
   avatar: { 
-    width: 56, 
-    height: 56, 
-    borderRadius: 28, 
+    width: s(56), 
+    height: s(56), 
+    borderRadius: s(28), 
     borderWidth: 1.5, 
     borderColor: COLORS.goldBorderLight, 
     backgroundColor: COLORS.darkCard3, 
     alignItems: 'center', 
     justifyContent: 'center', 
-    marginRight: 12 
+    marginRight: s(12) 
   },
   avatarText: { 
-    fontSize: 20 
+    fontSize: sf(20) 
   },
   headerTextBox: { 
     flex: 1 
   },
   topLabel: { 
     color: COLORS.dimGold, 
-    fontSize: 10, 
+    fontSize: sf(10), 
     letterSpacing: 2, 
-    marginBottom: 2 
+    marginBottom: sv(2) 
   },
   accountName: { 
     color: COLORS.softGold, 
-    fontSize: 20, 
+    fontSize: sf(20), 
     fontWeight: '700' 
   },
   rightHeader: { 
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   pointsBox: { 
     alignItems: 'flex-end', 
     justifyContent: 'flex-end', 
-    marginRight: 18, 
+    marginRight: s(18), 
     marginBottom: -2 
   },
   pointsRow: { 
@@ -215,16 +216,16 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   coinPlaceholder: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
+    width: s(28), 
+    height: s(28), 
+    borderRadius: s(14), 
     borderWidth: 1.5, 
     borderColor: COLORS.goldBorderLight, 
     backgroundColor: COLORS.darkCard2, 
     alignItems: 'center', 
     justifyContent: 'center', 
-    marginRight: 8, 
-    marginTop: 5, 
+    marginRight: s(8), 
+    marginTop: sv(5), 
     shadowColor: COLORS.dimGold, 
     shadowOffset: { width: 0, height: 0 }, 
     shadowOpacity: 0.35, 
@@ -238,39 +239,39 @@ const styles = StyleSheet.create({
   },
   pointsValue: { 
     color: COLORS.softGold, 
-    fontSize: 18, 
+    fontSize: sf(18), 
     fontWeight: '700' 
   },
   pointsLabel: { 
     color: COLORS.mutedGold, 
-    fontSize: 9, 
+    fontSize: sf(9), 
     marginTop: -7 
   },
   menuButton: { 
-    marginLeft: 10, 
-    padding: 4 
+    marginLeft: s(10), 
+    padding: s(4) 
   },
   dropdown: { 
     position: 'absolute', 
-    top: 46, 
+    top: sv(46), 
     right: 0, 
-    width: 190, 
+    width: s(190), 
     backgroundColor: COLORS.darkCard, 
     borderWidth: 1, 
     borderColor: COLORS.goldBorder, 
-    borderRadius: 14, 
-    paddingVertical: 10, 
-    paddingHorizontal: 14, 
+    borderRadius: s(14), 
+    paddingVertical: sv(10), 
+    paddingHorizontal: s(14), 
     zIndex: 999 
   },
   menuItem: { 
     color: COLORS.softGold, 
-    fontSize: 14, 
+    fontSize: sf(14), 
     paddingVertical: 8 
   },
   logoutItem: { 
     color: COLORS.error, 
-    fontSize: 14, 
+    fontSize: sf(14), 
     paddingVertical: 8 
   },
   line: { 
@@ -279,20 +280,20 @@ const styles = StyleSheet.create({
     marginVertical: 6 
   },
   sectionHeader: { 
-    marginBottom: 12, 
-    paddingHorizontal: 2 
+    marginBottom: sv(12), 
+    paddingHorizontal: s(2) 
   },
   sectionTitle: { 
     color: COLORS.paleGold, 
-    fontSize: 22, 
+    fontSize: sf(22), 
     fontWeight: '700', 
-    marginBottom: 4, 
+    marginBottom: sv(4), 
     letterSpacing: 1 
   },
   sectionSubtitle: { 
     color: COLORS.mutedGold, 
-    fontSize: 12.5, 
-    lineHeight: 18 
+    fontSize: sf(12.5), 
+    lineHeight: sf(18) 
   },
   grid: { 
     flexDirection: 'row', 
@@ -300,18 +301,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between' 
   },
   mentorCard: { 
-    marginTop: 4, 
-    marginBottom: 10, 
-    borderRadius: 16, 
+    marginTop: sv(4), 
+    marginBottom: sv(10), 
+    borderRadius: s(16), 
     borderWidth: 1, 
     borderColor: COLORS.goldBorder, 
     backgroundColor: COLORS.darkCard, 
-    paddingVertical: 8, 
-    paddingHorizontal: 12, 
+    paddingVertical: sv(8), 
+    paddingHorizontal: s(12), 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    minHeight: 82 
+    minHeight: sv(82) 
   },
   mentorLeft: { 
     flex: 1, 
@@ -319,63 +320,63 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   mentorIconWrap: { 
-    width: 42, 
-    height: 42, 
-    borderRadius: 12, 
+    width: s(42), 
+    height: s(42), 
+    borderRadius: s(12), 
     borderWidth: 1, 
     borderColor: COLORS.goldBorder, 
     backgroundColor: COLORS.darkCard2, 
     alignItems: 'center', 
     justifyContent: 'center', 
-    marginRight: 10 
+    marginRight: s(10) 
   },
   mentorTextBox: { 
     flex: 1 
   },
   mentorTitle: { 
     color: COLORS.paleGold, 
-    fontSize: 13.5, 
+    fontSize: sf(13.5), 
     fontWeight: '700', 
-    marginBottom: 2 
+    marginBottom: sv(2) 
   },
   mentorDescription: { 
     color: COLORS.textMuted, 
-    fontSize: 9, 
+    fontSize: sf(9), 
     lineHeight: 12 
   },
   mentorButton: { 
     borderWidth: 1,
     borderColor: COLORS.goldBorder, 
     borderRadius: 999, 
-    paddingVertical: 6, 
-    paddingHorizontal: 10, 
+    paddingVertical: sv(6), 
+    paddingHorizontal: s(10), 
     backgroundColor: COLORS.darkCard2 
   },
   mentorButtonText: { 
     color: COLORS.softGold, 
-    fontSize: 9.5, 
+    fontSize: sf(9.5), 
     fontWeight: '700' 
   },
   trackerSection: { 
-    marginTop: 6, 
-    marginBottom: 24, 
-    paddingHorizontal: 2 
+    marginTop: sv(6), 
+    marginBottom: sv(24), 
+    paddingHorizontal: s(2) 
   },
   trackerTitle: { 
     color: COLORS.paleGold, 
-    fontSize: 15, 
+    fontSize: sf(15), 
     fontWeight: '700', 
-    marginBottom: 3, 
+    marginBottom: sv(3), 
     letterSpacing: 1 
   },
   trackerSubtitle: { 
     color: COLORS.mutedGold, 
-    fontSize: 11, 
-    marginBottom: 10 
+    fontSize: sf(11), 
+    marginBottom: sv(10) 
   },
   trackerRow: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    gap: 8 
+    gap: s(8) 
   },
 });

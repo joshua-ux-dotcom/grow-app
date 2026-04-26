@@ -17,9 +17,10 @@ import { useIsFocused } from '@react-navigation/native';
 import FeedItem from '../../features/feed/components/FeedItem';
 import { getActiveVideos, toggleVideoBookmark } from '../../features/feed/services/videos'
 import { COLORS } from '../../constants/colors';
-
+import { s, sv, sf } from '../../constants/layout';
+ 
 const { height } = Dimensions.get('window');
-
+ 
 export default function FeedScreen() {
   const [feedData, setFeedData] = useState([]);
   const [activeVideoId, setActiveVideoId] = useState(null);
@@ -27,15 +28,15 @@ export default function FeedScreen() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [feedError, setFeedError] = useState(null);
   const [hasNoVideos, setHasNoVideos] = useState(false);
-
+ 
   const isFocused = useIsFocused();
-
+ 
   const flatListRef = useRef(null);
   const currentIndexRef = useRef(0);
   const dragStartOffsetY = useRef(0);
-
+ 
   const FLICK_THRESHOLD = 28;
-
+ 
   const loadVideos = useCallback(async () => {
     try {
       setFeedError(null);
@@ -43,7 +44,7 @@ export default function FeedScreen() {
       setIsInitialLoading(true);
       
       const videos = await getActiveVideos();
-
+ 
       if (!videos || videos.length === 0) {
         setFeedData([])
         setActiveVideoId(null);
@@ -51,7 +52,7 @@ export default function FeedScreen() {
         setIsInitialLoading(false);
         return;
       }
-
+ 
       setFeedData(videos);
       setActiveVideoId(videos[0].id);  
     } catch (error) {
@@ -62,25 +63,25 @@ export default function FeedScreen() {
       setIsInitialLoading(false);
     }
   }, []);
-
+ 
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
-
+ 
   const handleInitialVideoReady = useCallback(() => {
     setIsInitialLoading(false);
   }, []);
-
+ 
   const handleToggleSaved = useCallback(async (id) => {
     const video = feedData.find((item) => item.id === id);
-
+ 
     if (!video) {
       return;
     }
-
+ 
     try {
       const newSavedState = await toggleVideoBookmark(id, video.saved);
-
+ 
       setFeedData((prevData) =>
         prevData.map((item) =>
           item.id === id
@@ -92,12 +93,12 @@ export default function FeedScreen() {
       console.log('Fehler beim Speichern des Videos:', error);
     }
   }, [feedData]);
-
+ 
   const handleScroll = useCallback(
     (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       const nextIndex = Math.round(offsetY / height);
-
+ 
       if (
         nextIndex !== currentIndexRef.current &&
         nextIndex >= 0 &&
@@ -109,23 +110,23 @@ export default function FeedScreen() {
     },
     [feedData]
   );
-
+ 
   const handleScrollBeginDrag = useCallback((event) => {
     dragStartOffsetY.current = event.nativeEvent.contentOffset.y;
   }, []);
-
+ 
   const handleScrollEndDrag = useCallback(
     (event) => {
       const endOffsetY = event.nativeEvent.contentOffset.y;
       const dragDelta = endOffsetY - dragStartOffsetY.current;
       const velocityY = event.nativeEvent.velocity?.y ?? 0;
-
+ 
       const isFastFlickDown = velocityY > 0.35;
       const isFastFlickUp = velocityY < -0.35;
-
+ 
       const currentIndex = Math.round(dragStartOffsetY.current / height);
       let targetIndex = currentIndex;
-
+ 
       if (dragDelta > FLICK_THRESHOLD || isFastFlickDown) {
         targetIndex = currentIndex + 1;
       } else if (dragDelta < -FLICK_THRESHOLD || isFastFlickUp) {
@@ -133,28 +134,28 @@ export default function FeedScreen() {
       } else {
         targetIndex = Math.round(endOffsetY / height);
       }
-
+ 
       targetIndex = Math.max(0, Math.min(targetIndex, feedData.length - 1));
-
+ 
       flatListRef.current?.scrollToOffset({
         offset: targetIndex * height,
         animated: true,
       });
-
+ 
       currentIndexRef.current = targetIndex;
-
+ 
       if (feedData[targetIndex]) {
         setActiveVideoId(feedData[targetIndex].id);
       }
     },
     [feedData]
   );
-
+ 
   const handleMomentumScrollEnd = useCallback(
     (event) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       const settledIndex = Math.round(offsetY / height);
-
+ 
       if (feedData[settledIndex]) {
         currentIndexRef.current = settledIndex;
         setActiveVideoId(feedData[settledIndex].id);
@@ -162,7 +163,7 @@ export default function FeedScreen() {
     },
     [feedData]
   );
-
+ 
   const renderItem = useCallback(
     ({ item, index }) => (
       <FeedItem
@@ -185,20 +186,20 @@ export default function FeedScreen() {
       handleInitialVideoReady,
     ]
   );
-
+ 
   if (feedError) {
     return (
       <View style={styles.stateContainer}>
         <Text style={styles.stateTitle}>Fehler</Text>
         <Text style={styles.stateText}>{feedError}</Text>
-
+ 
         <Pressable style={styles.stateButton} onPress={loadVideos}>
           <Text style={styles.stateButtonText}>Erneut versuchen</Text>
         </Pressable>
       </View>
     );
   }
-
+ 
   if (hasNoVideos) {
     return (
       <View style={styles.stateContainer}>
@@ -206,14 +207,14 @@ export default function FeedScreen() {
         <Text style={styles.stateText}>
           Aktuell sind keine aktiven Videos verfügbar.
         </Text>
-
+ 
         <Pressable style={styles.stateButton} onPress={loadVideos}>
           <Text style={styles.stateButtonText}>Neu laden</Text>
         </Pressable>
       </View>
     );
   }
-
+ 
   return (
     <View style={styles.container}>
       {feedData.length > 0 && (
@@ -243,7 +244,7 @@ export default function FeedScreen() {
           })}
         />
       )}
-
+ 
       {isInitialLoading && (
         <View style={styles.loadingOverlay}>
           <Image
@@ -256,13 +257,13 @@ export default function FeedScreen() {
     </View>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
+ 
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.background,
@@ -270,12 +271,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 999,
   },
-
+ 
   loadingLogo: {
     width: 180,
     height: 180,
   },
-
+ 
   stateContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -283,32 +284,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 30,
   },
-
+ 
   stateTitle: {
     color: COLORS.white,
-    fontSize: 24,
+    fontSize: sf(24),
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: sv(12),
   },
-
+ 
   stateText: {
     color: COLORS.mutedGold,
-    fontSize: 15,
+    fontSize: sf(15),
     textAlign: 'center',
     lineHeight: 22,
   },
-
+ 
   stateButton: {
     marginTop: 22,
     backgroundColor: COLORS.gold,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: s(20),
+    paddingVertical: sv(12),
+    borderRadius: s(12),
   },
-
+ 
   stateButtonText: {
     color: COLORS.black,
-    fontSize: 15,
+    fontSize: sf(15),
     fontWeight: '700',
   },
 });

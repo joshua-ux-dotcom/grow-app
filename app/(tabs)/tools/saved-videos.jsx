@@ -10,28 +10,29 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
-
+ 
 import { COLORS } from '../../../constants/colors';
 import { getSavedVideos } from '../../../features/feed/services/videos';
-
+import { s, sv, sf } from '../../../constants/layout';
+ 
 const { width } = Dimensions.get('window');
 const GAP = 3;
 const HORIZONTAL_PADDING = 18;
 const ITEM_WIDTH = (width - HORIZONTAL_PADDING * 2 - GAP * 2) / 3;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.55;
-
+ 
 export default function SavedVideosScreen() {
   const [savedVideos, setSavedVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorText, setErrorText] = useState(null);
-
+ 
   const loadSavedVideos = useCallback(async () => {
     try {
       setErrorText(null);
       setIsLoading(true);
-
+ 
       const videos = await getSavedVideos();
-
+ 
       setSavedVideos(videos);
     } catch (error) {
       console.log('Fehler beim Laden gespeicherter Videos:', error);
@@ -40,13 +41,13 @@ export default function SavedVideosScreen() {
       setIsLoading(false);
     }
   }, []);
-
+ 
   useFocusEffect(
     useCallback(() => {
       loadSavedVideos();
     }, [loadSavedVideos])
   );
-
+ 
   function openSavedFeed(index) {
     router.push({
       pathname: '/(tabs)/saved-feed',
@@ -55,41 +56,41 @@ export default function SavedVideosScreen() {
       },
     });
   }
-
+ 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="chevron-left" size={26} color={COLORS.softGold} />
         </Pressable>
-
+ 
         <View>
           <Text style={styles.topLabel}>GROW</Text>
           <Text style={styles.title}>Gespeicherte Videos</Text>
         </View>
       </View>
-
+ 
       <Text style={styles.subtitle}>
         Deine persönliche Motivations-Bibliothek.
       </Text>
-
+ 
       {isLoading && (
         <View style={styles.stateBox}>
           <Text style={styles.stateText}>Lade gespeicherte Videos...</Text>
         </View>
       )}
-
+ 
       {!isLoading && errorText && (
         <View style={styles.stateBox}>
           <Text style={styles.stateTitle}>Fehler</Text>
           <Text style={styles.stateText}>{errorText}</Text>
-
+ 
           <Pressable style={styles.retryButton} onPress={loadSavedVideos}>
             <Text style={styles.retryButtonText}>Erneut versuchen</Text>
           </Pressable>
         </View>
       )}
-
+ 
       {!isLoading && !errorText && savedVideos.length === 0 && (
         <View style={styles.stateBox}>
           <Ionicons name="bookmark-outline" size={42} color={COLORS.gold} />
@@ -99,7 +100,7 @@ export default function SavedVideosScreen() {
           </Text>
         </View>
       )}
-
+ 
       {!isLoading && !errorText && savedVideos.length > 0 && (
         <FlatList
           data={savedVideos}
@@ -124,7 +125,7 @@ export default function SavedVideosScreen() {
                   <Ionicons name="play" size={26} color={COLORS.black} />
                 </View>
               )}
-
+ 
               <View style={styles.playBadge}>
                 <Ionicons name="play" size={14} color={COLORS.paleGold} />
               </View>
@@ -135,12 +136,12 @@ export default function SavedVideosScreen() {
     </View>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.black,
-    paddingTop: 66,
+    paddingTop: sv(66),
     paddingHorizontal: HORIZONTAL_PADDING,
   },
   header: {
@@ -157,22 +158,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.darkCard,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: s(12),
   },
   topLabel: {
     color: COLORS.dimGold,
-    fontSize: 10,
+    fontSize: sf(10),
     letterSpacing: 2,
     marginBottom: 3,
   },
   title: {
     color: COLORS.paleGold,
-    fontSize: 24,
+    fontSize: sf(24),
     fontWeight: '800',
   },
   subtitle: {
     color: COLORS.mutedGold,
-    fontSize: 13,
+    fontSize: sf(13),
     lineHeight: 19,
     marginBottom: 22,
   },
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     right: 7,
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: s(12),
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -215,32 +216,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 80,
+    paddingBottom: sv(80),
   },
   stateTitle: {
     color: COLORS.paleGold,
-    fontSize: 20,
+    fontSize: sf(20),
     fontWeight: '700',
     marginTop: 14,
-    marginBottom: 8,
+    marginBottom: sv(8),
     textAlign: 'center',
   },
   stateText: {
     color: COLORS.mutedGold,
-    fontSize: 14,
+    fontSize: sf(14),
     lineHeight: 21,
     textAlign: 'center',
   },
   retryButton: {
-    marginTop: 20,
+    marginTop: sv(20),
     backgroundColor: COLORS.gold,
     paddingHorizontal: 18,
     paddingVertical: 11,
-    borderRadius: 12,
+    borderRadius: s(12),
   },
   retryButtonText: {
     color: COLORS.black,
-    fontSize: 14,
+    fontSize: sf(14),
     fontWeight: '700',
   },
 });

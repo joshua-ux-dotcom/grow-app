@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-
+ 
 import ScreenContainer from '../../components/ui/ScreenContainer';
 import AppButton from '../../components/ui/AppButton';
 import { COLORS } from '../../constants/colors';
-
+import { s, sv, sf, SCREEN } from '../../constants/layout';
+ 
 const BENEFITS = [
   {
     key: 'personalized',
@@ -32,7 +33,7 @@ const BENEFITS = [
     ),
   },
 ];
-
+ 
 function BenefitItem({ icon, title, text, scale }) {
   return (
     <View style={styles.benefitItem}>
@@ -49,7 +50,7 @@ function BenefitItem({ icon, title, text, scale }) {
       >
         {icon}
       </View>
-
+ 
       <Text
         style={[
           styles.benefitTitle,
@@ -62,7 +63,7 @@ function BenefitItem({ icon, title, text, scale }) {
       >
         {title}
       </Text>
-
+ 
       <Text
         style={[
           styles.benefitText,
@@ -78,14 +79,13 @@ function BenefitItem({ icon, title, text, scale }) {
     </View>
   );
 }
-
+ 
 export default function KIMentorScreen() {
-  const { width, height } = useWindowDimensions();
-
-  const scaleByHeight = Math.min(Math.max(height / 900, 0.82), 1);
-  const scaleByWidth = Math.min(Math.max(width / 430, 0.9), 1);
-  const scale = Math.min(scaleByHeight, scaleByWidth);
-
+  const scale = Math.min(
+    Math.min(Math.max(SCREEN.width / 430, 0.9), 1),
+    Math.min(Math.max(SCREEN.height / 900, 0.82), 1)
+  );
+ 
   return (
     <ScreenContainer
       style={[
@@ -109,7 +109,7 @@ export default function KIMentorScreen() {
         >
           GROW
         </Text>
-
+ 
         <View
           style={[
             styles.heroCard,
@@ -132,7 +132,7 @@ export default function KIMentorScreen() {
               >
                 DEIN PERSÖNLICHER
               </Text>
-
+ 
               <Text
                 style={[
                   styles.title,
@@ -145,7 +145,7 @@ export default function KIMentorScreen() {
               >
                 KI Mentor
               </Text>
-
+ 
               <View
                 style={[
                   styles.badge,
@@ -169,7 +169,7 @@ export default function KIMentorScreen() {
                   Dein Wachstum. Deine Regeln. Seine Führung.
                 </Text>
               </View>
-
+ 
               <Text
                 style={[
                   styles.intro,
@@ -184,7 +184,7 @@ export default function KIMentorScreen() {
                 Gewohnheiten und deiner persönlichen Entwicklung unterstützen.
               </Text>
             </View>
-
+ 
             <View
               style={[
                 styles.heroIconWrap,
@@ -209,7 +209,7 @@ export default function KIMentorScreen() {
               />
             </View>
           </View>
-
+ 
           <View
             style={[
               styles.benefitsCard,
@@ -232,7 +232,7 @@ export default function KIMentorScreen() {
               />
             ))}
           </View>
-
+ 
           <View
             style={[
               styles.buildCard,
@@ -256,7 +256,7 @@ export default function KIMentorScreen() {
               >
                 <Feather name="tool" size={17 * scale} color={COLORS.warmGold} />
               </View>
-
+ 
               <View style={styles.buildTextWrap}>
                 <Text
                   style={[
@@ -269,7 +269,7 @@ export default function KIMentorScreen() {
                 >
                   Der KI Mentor entsteht gerade
                 </Text>
-
+ 
                 <Text
                   style={[
                     styles.buildText,
@@ -285,7 +285,7 @@ export default function KIMentorScreen() {
                 </Text>
               </View>
             </View>
-
+ 
             <AppButton
               title="Aktuell in Entwicklung"
               disabled
@@ -305,7 +305,7 @@ export default function KIMentorScreen() {
     </ScreenContainer>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -315,14 +315,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-
+ 
   brand: {
     color: COLORS.dimGold,
     fontWeight: '800',
     textAlign: 'center',
     letterSpacing: 1,
   },
-
+ 
   heroCard: {
     backgroundColor: COLORS.darkCard5,
     borderWidth: 1,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontWeight: '500',
   },
-
+ 
   heroIconWrap: {
     backgroundColor: 'rgba(120, 74, 15, 0.14)',
     alignItems: 'center',
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   treeIcon: {
     position: 'absolute',
   },
-
+ 
   benefitsCard: {
     backgroundColor: COLORS.darkCard5,
     borderWidth: 1,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
   },
-
+ 
   buildCard: {
     backgroundColor: COLORS.darkCard4,
     borderWidth: 1,
