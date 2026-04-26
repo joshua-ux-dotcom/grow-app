@@ -35,5 +35,8 @@
   "devDependencies": {
     "@expo/image-utils": "^0.8.13",
     "@expo/prebuild-config": "^55.0.16"
+  },
+  "overrides": {
+    "@expo/prebuild-config": "54.0.8"
   }
 }
