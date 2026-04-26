@@ -31,12 +31,5 @@
     "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "^0.21.0"
   },
-  "private": true,
-  "devDependencies": {
-    "@expo/image-utils": "^0.8.13",
-    "@expo/prebuild-config": "^55.0.16"
-  },
-  "overrides": {
-    "@expo/prebuild-config": "54.0.8"
-  }
+  "private": true
 }
