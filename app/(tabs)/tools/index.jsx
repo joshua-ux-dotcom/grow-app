@@ -159,7 +159,6 @@ const styles = StyleSheet.create({
     flex: 1, 
     paddingTop: sv(66), 
     paddingHorizontal: s(14), 
-    paddingBottom: sv(100) 
   },
   header: { 
     flexDirection: 'row', 
@@ -206,26 +205,25 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   pointsBox: { 
-    alignItems: 'flex-end', 
-    justifyContent: 'flex-end', 
-    marginRight: s(18), 
-    marginBottom: -2 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: s(12), 
   },
   pointsRow: { 
     flexDirection: 'row', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    marginBottom: sv(2),
   },
   coinPlaceholder: { 
-    width: s(28), 
-    height: s(28), 
-    borderRadius: s(14), 
+    width: s(24), 
+    height: s(24), 
+    borderRadius: s(12), 
     borderWidth: 1.5, 
     borderColor: COLORS.goldBorderLight, 
     backgroundColor: COLORS.darkCard2, 
     alignItems: 'center', 
     justifyContent: 'center', 
-    marginRight: s(8), 
-    marginTop: sv(5), 
+    marginRight: s(6), 
     shadowColor: COLORS.dimGold, 
     shadowOffset: { width: 0, height: 0 }, 
     shadowOpacity: 0.35, 
@@ -233,9 +231,8 @@ const styles = StyleSheet.create({
   },
   coinStar: { 
     color: COLORS.softGold, 
-    fontSize: 12, 
+    fontSize: sf(11), 
     fontWeight: '700', 
-    marginTop: -1 
   },
   pointsValue: { 
     color: COLORS.softGold, 
@@ -244,8 +241,8 @@ const styles = StyleSheet.create({
   },
   pointsLabel: { 
     color: COLORS.mutedGold, 
-    fontSize: sf(9), 
-    marginTop: -7 
+    fontSize: sf(9),
+    textAlign: 'center',
   },
   menuButton: { 
     marginLeft: s(10), 
