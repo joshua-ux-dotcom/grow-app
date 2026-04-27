@@ -9,7 +9,12 @@ import { tools } from '../../../data/tools';
 import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
 import { useProfile } from '../../../features/profile/hooks/useProfile';
-import { s, sv, sf } from '../../../constants/layout';
+import { s, sv, sf, SCREEN } from '../../../constants/layout';
+
+// < 900pt (iPhone 15 Pro 852pt, iPhone 16 Pro 874pt): kompakte Abstände
+// < 700pt (iPhone SE 667pt): sehr kompakte Abstände
+const compact = SCREEN.height < 900;
+const veryCompact = SCREEN.height < 700;
  
 const TRACKER_ITEMS = [
   { value: '7', label: 'Tage Streak' },
@@ -155,17 +160,18 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: COLORS.black 
   },
-  content: { 
-    flex: 1, 
-    paddingTop: sv(66), 
-    paddingHorizontal: s(14), 
+  content: {
+    flex: 1,
+    paddingTop: sv(66),
+    paddingHorizontal: s(14),
+    paddingBottom: sv(72),
   },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-end', 
-    justifyContent: 'space-between', 
-    marginBottom: sv(16), 
-    paddingHorizontal: s(2) 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: veryCompact ? sv(2) : compact ? sv(6) : sv(16),
+    paddingHorizontal: s(2)
   },
   leftHeader: { 
     flexDirection: 'row', 
@@ -276,9 +282,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.goldBorder, 
     marginVertical: 6 
   },
-  sectionHeader: { 
-    marginBottom: sv(12), 
-    paddingHorizontal: s(2) 
+  sectionHeader: {
+    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(12),
+    paddingHorizontal: s(2)
   },
   sectionTitle: { 
     color: COLORS.paleGold, 
@@ -297,9 +303,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap', 
     justifyContent: 'space-between' 
   },
-  mentorCard: { 
-    marginTop: sv(4), 
-    marginBottom: sv(10), 
+  mentorCard: {
+    marginTop: compact ? 0 : sv(4),
+    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(10),
     borderRadius: s(16), 
     borderWidth: 1, 
     borderColor: COLORS.goldBorder, 
@@ -354,22 +360,22 @@ const styles = StyleSheet.create({
     fontSize: sf(9.5), 
     fontWeight: '700' 
   },
-  trackerSection: { 
-    marginTop: sv(6), 
-    marginBottom: sv(24), 
-    paddingHorizontal: s(2) 
+  trackerSection: {
+    marginTop: compact ? 0 : sv(6),
+    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(24),
+    paddingHorizontal: s(2)
   },
-  trackerTitle: { 
-    color: COLORS.paleGold, 
-    fontSize: sf(15), 
-    fontWeight: '700', 
-    marginBottom: sv(3), 
-    letterSpacing: 1 
+  trackerTitle: {
+    color: COLORS.paleGold,
+    fontSize: sf(15),
+    fontWeight: '700',
+    marginBottom: veryCompact ? sv(1) : compact ? sv(2) : sv(3),
+    letterSpacing: 1
   },
-  trackerSubtitle: { 
-    color: COLORS.mutedGold, 
-    fontSize: sf(11), 
-    marginBottom: sv(10) 
+  trackerSubtitle: {
+    color: COLORS.mutedGold,
+    fontSize: sf(11),
+    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(10),
   },
   trackerRow: { 
     flexDirection: 'row', 
