@@ -1,6 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../constants/colors';
-import { s, sv, sf } from '../../constants/layout';
+import { s, sv, sf, SCREEN } from '../../constants/layout';
+
+const compact = SCREEN.height < 900;
+const veryCompact = SCREEN.height < 700;
  
 export default function ToolCard({ icon, title, description, onPress, disabled = false, badgeText }) {
   return (
@@ -20,7 +23,7 @@ export default function ToolCard({ icon, title, description, onPress, disabled =
         </View>
       ) : null}
  
-      <View style={[styles.iconWrapper, disabled && styles.iconWrapperDisabled]}>
+      <View style={[styles.iconWrapper, disabled && styles.iconWrapperDisabled, disabled && styles.iconWrapperSmall]}>
         {typeof icon === 'string' ? (
           <Text style={[styles.icon, disabled && styles.iconDisabled]}>{icon}</Text>
         ) : (
@@ -56,7 +59,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cardDisabledHeight: {
-    minHeight: sv(80),
+    minHeight: veryCompact ? sv(48) : compact ? sv(58) : sv(68),
+    paddingVertical: veryCompact ? sv(4) : compact ? sv(5) : sv(6),
   },
   cardDisabled: {
     borderColor: COLORS.borderStrong,
@@ -96,6 +100,12 @@ const styles = StyleSheet.create({
   iconWrapperDisabled: {
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.darkCard3,
+  },
+  iconWrapperSmall: {
+    width: veryCompact ? s(24) : compact ? s(28) : s(32),
+    height: veryCompact ? s(24) : compact ? s(28) : s(32),
+    borderRadius: veryCompact ? s(12) : compact ? s(14) : s(16),
+    marginBottom: veryCompact ? sv(3) : compact ? sv(4) : sv(5),
   },
   icon: { fontSize: sf(17) },
   iconDisabled: { opacity: 0.8 },
