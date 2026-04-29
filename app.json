@@ -1,6 +1,6 @@
 {
   "expo": {
-    "scheme": "Growapp",
+    "scheme": "growapp",
     "name": "Grow",
     "slug": "Grow",
     "version": "1.0.4",
@@ -18,16 +18,14 @@
       }
     },
     "android": {
-      "edgeToEdgeEnabled": true,
-      "statusBar": {
-        "backgroundColor": "#050505",
-        "barStyle": "light-content",
-        "translucent": true
-      }
+      "edgeToEdgeEnabled": true
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      "expo-video",
+      "@react-native-community/datetimepicker",
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "router": {},

@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
 } from 'react';
+
 import {
   FlatList,
   View,
@@ -13,9 +14,9 @@ import {
   Text,
   Pressable,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import FeedItem from '../../features/feed/components/FeedItem';
-import { getActiveVideos, toggleVideoBookmark } from '../../features/feed/services/videos'
+import { getActiveVideos, toggleVideoBookmark, getSavedVideoIds } from '../../features/feed/services/videos'
 import { COLORS } from '../../constants/colors';
 import { s, sv, sf } from '../../constants/layout';
  
@@ -67,7 +68,28 @@ export default function FeedScreen() {
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
- 
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      async function syncSavedState() {
+        try {
+          const savedIds = await getSavedVideoIds();
+          setFeedData((prev) =>
+            prev.map((video) => ({ ...video, saved: savedIds.includes(video.id) }))
+          );
+        } catch (e) {
+          console.log('Fehler beim Sync der Bookmarks:', e);
+        }
+      }
+      syncSavedState();
+    }, [])
+  );
+
   const handleInitialVideoReady = useCallback(() => {
     setIsInitialLoading(false);
   }, []);

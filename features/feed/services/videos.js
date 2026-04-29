@@ -88,6 +88,20 @@ export async function getSavedVideos() {
     }));
 }
 
+export async function getSavedVideoIds() {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('video_bookmarks')
+    .select('video_id')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+
+  return data.map((b) => b.video_id);
+}
+
 export async function toggleVideoBookmark(videoId, currentlySaved) {
   const userId = await getCurrentUserId();
 
