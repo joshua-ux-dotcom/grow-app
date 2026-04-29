@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
     borderRadius: s(14),
-    minHeight: sv(76),
+    minHeight: sv(52),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: s(6),

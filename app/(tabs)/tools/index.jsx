@@ -361,25 +361,27 @@ const styles = StyleSheet.create({
     fontWeight: '700' 
   },
   trackerSection: {
-    marginTop: compact ? 0 : sv(6),
-    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(24),
-    paddingHorizontal: s(2)
+    flex: 1,
+    marginTop: sv(4),
+    paddingHorizontal: s(2),
   },
   trackerTitle: {
     color: COLORS.paleGold,
     fontSize: sf(15),
     fontWeight: '700',
-    marginBottom: veryCompact ? sv(1) : compact ? sv(2) : sv(3),
+    marginBottom: sv(2),
     letterSpacing: 1
   },
   trackerSubtitle: {
     color: COLORS.mutedGold,
     fontSize: sf(11),
-    marginBottom: veryCompact ? sv(2) : compact ? sv(4) : sv(10),
+    marginBottom: sv(4),
   },
-  trackerRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    gap: s(8) 
+  trackerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: s(8),
+    maxHeight: sv(110),
   },
 });

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const TODOS = [
+const INITIAL_TODOS = [
   { id: '1', title: 'Morgens kalt duschen', completed: true },
   { id: '2', title: 'Workout beenden', completed: true },
   { id: '3', title: '30 Min. lesen', completed: true },
@@ -11,9 +12,37 @@ const TODOS = [
 ];
 
 export default function TodoScreen() {
-  const completedCount = TODOS.filter((todo) => todo.completed).length;
-  const totalCount = TODOS.length;
-  const progress = completedCount / totalCount;
+  const [todos, setTodos] = useState(INITIAL_TODOS);
+
+  const completedCount = todos.filter((todo) => todo.completed).length;
+  const totalCount = todos.length;
+  const progress = totalCount === 0 ? 0 : completedCount / totalCount;
+
+  function toggleTodo(id) {
+    setTodos((currentTodos) =>
+      currentTodos.map((todo) =>
+        todo.id === id
+          ? { ...todo, completed: !todo.completed }
+          : todo
+      )
+    );
+  }
+
+  function addTodo() {
+    const newTodo = {
+      id: Date.now().toString(),
+      title: 'Neue Aufgabe',
+      completed: false,
+    };
+
+    setTodos((currentTodos) => [newTodo, ...currentTodos]);
+  }
+
+  function deleteTodo(id) {
+    setTodos((currentTodos) =>
+      currentTodos.filter((todo) => todo.id !== id)
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -43,9 +72,11 @@ export default function TodoScreen() {
         </View>
 
         <View style={styles.list}>
-          {TODOS.map((todo) => (
-            <View
+          {todos.map((todo) => (
+            <Pressable
               key={todo.id}
+              onPress={() => toggleTodo(todo.id)}
+              onLongPress={() => deleteTodo(todo.id)}
               style={[
                 styles.todoCard,
                 todo.completed && styles.todoCardDone,
@@ -64,17 +95,24 @@ export default function TodoScreen() {
                 </View>
 
                 <View>
-                  <Text style={styles.todoTitle}>{todo.title}</Text>
+                  <Text
+                    style={[
+                      styles.todoTitle,
+                      todo.completed && styles.todoTitleDone,
+                    ]}
+                  >
+                    {todo.title}
+                  </Text>
                   <Text style={styles.todoSub}>
                     {todo.completed ? 'Abgeschlossen' : 'fällig heute 23:59'}
                   </Text>
                 </View>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
 
-        <Pressable style={styles.addButton}>
+        <Pressable style={styles.addButton} onPress={addTodo}>
           <Text style={styles.addPlus}>+</Text>
           <Text style={styles.addText}>Neue Aufgabe hinzufügen</Text>
         </Pressable>
@@ -181,6 +219,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.035)',
     paddingHorizontal: 16,
     justifyContent: 'center',
+  },
+
+  todoTitleDone: {
+    color: '#C8B78E',
+    textDecorationLine: 'line-through',
   },
 
   todoCardDone: {
