@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Modal, TextInput, ActivityIndicator, Platform,
-  Animated, PanResponder, KeyboardAvoidingView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,61 +10,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
 import { getTodos, addTodo, toggleTodo, deleteTodo } from '../../../features/todos/services/todo'
-
-// ─── Swipe-to-Delete Komponente ───────────────────────────────────────────────
-
-function SwipeToDelete({ children, onDelete }) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const DELETE_WIDTH = s(80);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
-        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8,
-      onPanResponderMove: (_, { dx }) => {
-        if (dx < 0) translateX.setValue(Math.max(dx, -DELETE_WIDTH));
-      },
-      onPanResponderRelease: (_, { dx }) => {
-        if (dx < -(DELETE_WIDTH / 2)) {
-          Animated.spring(translateX, {
-            toValue: -DELETE_WIDTH,
-            useNativeDriver: true,
-          }).start();
-        } else {
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  const close = () => {
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
-  };
-
-  return (
-    <View style={{ overflow: 'hidden', borderRadius: s(14) }}>
-      {/* Löschen-Button im Hintergrund */}
-      <Pressable
-        style={styles.deleteAction}
-        onPress={() => { close(); onDelete(); }}
-      >
-        <Ionicons name="trash-outline" size={s(20)} color={COLORS.white} />
-        <Text style={styles.deleteLabel}>Löschen</Text>
-      </Pressable>
-
-      {/* Verschiebbarer Vordergrund */}
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={{ transform: [{ translateX }] }}
-      >
-        {children}
-      </Animated.View>
-    </View>
-  );
-}
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
@@ -121,17 +66,23 @@ export default function TodoScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [androidStep, setAndroidStep] = useState('date');
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await getTodos();
-      setTodos(sortTodos(data));
-    } catch (e) {
-      console.log('Fehler beim Laden der Todos:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const load = useCallback(async () => {
+  try {
+    setError(null);        // wichtig: reset bei neuem Versuch
+    setLoading(true);      // falls du reloads machst
+
+    const data = await getTodos();
+    setTodos(sortTodos(data));
+
+  } catch (e) {
+    console.log('Fehler beim Laden der Todos:', e);
+    setError('Todos konnten nicht geladen werden.');
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -185,6 +136,24 @@ export default function TodoScreen() {
     : 'Fälligkeitsdatum setzen';
 
   // ────────────────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.loadingText}>Lädt...</Text>
+      </View>
+    );
+  }
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+
+        <Pressable onPress={load} style={styles.retryButton}>
+          <Text style={styles.retryText}>Erneut versuchen</Text>
+        </Pressable>
+      </View>
+    );
+  }
   return (
     <View style={styles.screen}>
 
@@ -237,7 +206,7 @@ export default function TodoScreen() {
               const dueLabel = formatDueLabel(todo.due_at, todo.completed);
 
               return (
-                <SwipeToDelete key={todo.id} onDelete={() => handleDelete(todo.id)}>
+                <View key={todo.id} style={styles.todoCardWrap}>
                   <Pressable
                     style={[
                       styles.todoCard,
@@ -280,9 +249,22 @@ export default function TodoScreen() {
                           </Text>
                         )}
                       </View>
+
+                      {todo.completed && (
+                        <Pressable
+                          style={styles.completedDeleteButton}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            handleDelete(todo.id);
+                          }}
+                          hitSlop={s(10)}
+                        >
+                          <Ionicons name="trash-outline" size={s(21)} color={COLORS.white} />
+                        </Pressable>
+                      )}
                     </View>
                   </Pressable>
-                </SwipeToDelete>
+                </View>
               );
             })}
           </View>
@@ -513,6 +495,10 @@ const styles = StyleSheet.create({
     gap: sv(10),
     marginBottom: sv(8),
   },
+  todoCardWrap: {
+    borderRadius: s(14),
+    overflow: 'hidden',
+  },
   todoCard: {
     minHeight: sv(68),
     borderRadius: s(14),
@@ -576,21 +562,14 @@ const styles = StyleSheet.create({
   },
   todoSubUrgent:  { color: 'rgba(255,90,90,0.9)',  fontWeight: '600' },
   todoSubOverdue: { color: 'rgba(220,70,70,0.9)',  fontWeight: '600' },
-  deleteAction: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: s(80),
-    backgroundColor: COLORS.error ?? '#C0392B',
+  completedDeleteButton: {
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
     alignItems: 'center',
     justifyContent: 'center',
-    gap: sv(4),
-  },
-  deleteLabel: {
-    color: COLORS.white,
-    fontSize: sf(11),
-    fontWeight: '600',
+    marginLeft: s(8),
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   addButton: {
     height: sv(54),
@@ -708,5 +687,37 @@ const styles = StyleSheet.create({
     color: COLORS.black ?? '#050505',
     fontSize: sf(15),
     fontWeight: '700',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+
+  errorText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+
+  retryText: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });
