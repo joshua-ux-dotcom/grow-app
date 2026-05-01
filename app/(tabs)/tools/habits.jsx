@@ -1,12 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Modal, TextInput, Platform, KeyboardAvoidingView,
+  Modal, TextInput, Platform, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
+import {
+  getHabits, addHabit, deleteHabit,
+  getCompletionsForDate, toggleCompletion,
+} from '../../../features/habits/services/habits';
 
 const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -15,12 +19,25 @@ function getTodayIndex() {
   return d === 0 ? 6 : d - 1;
 }
 
+function getDateForDayIndex(dayIndex) {
+  const today = new Date();
+  const todayDow = today.getDay();
+  const targetDow = dayIndex === 6 ? 0 : dayIndex + 1;
+  const diff = targetDow - todayDow;
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export default function HabitsScreen() {
   const [selectedDay, setSelectedDay] = useState(getTodayIndex());
   const [habits, setHabits] = useState([]);
-  const [completions, setCompletions] = useState({});
+  const [completedIds, setCompletedIds] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -28,46 +45,88 @@ export default function HabitsScreen() {
   const [modalDays, setModalDays] = useState(new Set());
   const [allDays, setAllDays] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState(null);
+
+  useEffect(() => {
+    loadHabits();
+  }, []);
+
+  useEffect(() => {
+    loadCompletions();
+  }, [selectedDay]);
+
+  async function loadHabits() {
+    setLoadError(null);
+    try {
+      const data = await getHabits();
+      setHabits(data);
+    } catch (e) {
+      setLoadError('Gewohnheiten konnten nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadCompletions() {
+    const date = getDateForDayIndex(selectedDay);
+    try {
+      const ids = await getCompletionsForDate(date);
+      setCompletedIds(new Set(ids));
+    } catch (e) {
+      setActionError('Fortschritt konnte nicht geladen werden.');
+    }
+  }
 
   const visibleHabits = habits.filter(h => h.days.includes(selectedDay));
-  const dayCompletions = completions[selectedDay] ?? {};
-  const completedCount = visibleHabits.filter(h => dayCompletions[h.id]).length;
+  const completedCount = visibleHabits.filter(h => completedIds.has(h.id)).length;
   const total = visibleHabits.length;
   const progress = total === 0 ? 0 : completedCount / total;
 
-  const handleToggle = useCallback((id) => {
-    setCompletions(prev => {
-      const dayData = { ...(prev[selectedDay] ?? {}) };
-      dayData[id] = !dayData[id];
-      return { ...prev, [selectedDay]: dayData };
-    });
-  }, [selectedDay]);
-
-  const handleDelete = useCallback((id) => {
-    setHabits(prev => prev.filter(h => h.id !== id));
-    setCompletions(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(day => {
-        if (next[day][id]) {
-          next[day] = { ...next[day] };
-          delete next[day][id];
-        }
-      });
+  const handleToggle = useCallback(async (id) => {
+    const date = getDateForDayIndex(selectedDay);
+    const isDone = completedIds.has(id);
+    setCompletedIds(prev => {
+      const next = new Set(prev);
+      isDone ? next.delete(id) : next.add(id);
       return next;
     });
+    try {
+      await toggleCompletion(id, date, !isDone);
+    } catch (e) {
+      setActionError('Änderung konnte nicht gespeichert werden.');
+      setCompletedIds(prev => {
+        const next = new Set(prev);
+        isDone ? next.add(id) : next.delete(id);
+        return next;
+      });
+    }
+  }, [selectedDay, completedIds]);
+
+  const handleDelete = useCallback(async (id) => {
+    setHabits(prev => prev.filter(h => h.id !== id));
+    try {
+      await deleteHabit(id);
+    } catch (e) {
+      setActionError('Gewohnheit konnte nicht gelöscht werden.');
+      loadHabits();
+    }
   }, []);
 
-  const handleAdd = useCallback(() => {
+  const handleAdd = useCallback(async () => {
     if (!inputName.trim()) return;
     const days = allDays ? [0, 1, 2, 3, 4, 5, 6] : Array.from(modalDays);
     if (days.length === 0) return;
+    setAddError(null);
     setAdding(true);
-    const newHabit = { id: Date.now().toString(), name: inputName.trim(), days };
-    setHabits(prev => [...prev, newHabit]);
-    setTimeout(() => {
-      setAdding(false);
+    try {
+      const newHabit = await addHabit(inputName.trim(), days);
+      setHabits(prev => [...prev, newHabit]);
       closeModal();
-    }, 200);
+    } catch (e) {
+      setAddError('Gewohnheit konnte nicht gespeichert werden. Bitte versuche es erneut.');
+    } finally {
+      setAdding(false);
+    }
   }, [inputName, modalDays, allDays]);
 
   const closeModal = () => {
@@ -75,6 +134,7 @@ export default function HabitsScreen() {
     setInputName('');
     setModalDays(new Set());
     setAllDays(false);
+    setAddError(null);
   };
 
   const toggleModalDay = (dayIndex) => {
@@ -98,7 +158,6 @@ export default function HabitsScreen() {
   return (
     <View style={styles.screen}>
 
-      {/* Zurück-Button */}
       <View style={styles.topBar}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={s(24)} color={COLORS.softGold} />
@@ -116,6 +175,28 @@ export default function HabitsScreen() {
           <Text style={styles.title}>GEWOHNHEITEN</Text>
           <Text style={styles.subtitle}>Build life-changing habits</Text>
         </View>
+
+        {/* Ladefehler */}
+        {loadError && (
+          <View style={styles.errorCard}>
+            <Ionicons name="alert-circle-outline" size={s(20)} color={styles.errorIcon.color} />
+            <Text style={styles.errorText}>{loadError}</Text>
+            <Pressable onPress={loadHabits} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Erneut versuchen</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Aktionsfehler (Abhaken, Löschen) */}
+        {actionError && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={s(16)} color={styles.errorIcon.color} />
+            <Text style={styles.errorBannerText}>{actionError}</Text>
+            <Pressable onPress={() => setActionError(null)} hitSlop={s(8)}>
+              <Ionicons name="close" size={s(16)} color={COLORS.textDim} />
+            </Pressable>
+          </View>
+        )}
 
         {/* Tages-Auswahl */}
         <View style={styles.dayRow}>
@@ -144,7 +225,11 @@ export default function HabitsScreen() {
         </View>
 
         {/* Liste */}
-        {total === 0 ? (
+        {loading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={COLORS.gold} />
+          </View>
+        ) : total === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="flame-outline" size={s(48)} color={COLORS.textDim} />
             <Text style={styles.emptyText}>Noch keine Gewohnheiten.</Text>
@@ -153,7 +238,7 @@ export default function HabitsScreen() {
         ) : (
           <View style={styles.list}>
             {visibleHabits.map(habit => {
-              const done = !!dayCompletions[habit.id];
+              const done = completedIds.has(habit.id);
               return (
                 <Pressable
                   key={habit.id}
@@ -223,7 +308,6 @@ export default function HabitsScreen() {
                 returnKeyType="done"
               />
 
-              {/* Tage auswählen */}
               <Text style={styles.dayLabel}>An welchen Tagen?</Text>
               <View style={styles.modalDayRow}>
                 {DAYS.map((day, index) => {
@@ -242,7 +326,6 @@ export default function HabitsScreen() {
                 })}
               </View>
 
-              {/* Alle Tage Checkbox */}
               <Pressable style={styles.allDaysRow} onPress={toggleAllDays}>
                 <View style={[styles.checkboxSmall, allDays && styles.checkboxSmallDone]}>
                   {allDays && <Ionicons name="checkmark" size={s(11)} color={COLORS.black} />}
@@ -250,7 +333,14 @@ export default function HabitsScreen() {
                 <Text style={styles.allDaysText}>An allen Tagen</Text>
               </Pressable>
 
-              {/* Buttons */}
+              {/* Fehler beim Hinzufügen */}
+              {addError && (
+                <View style={styles.modalErrorRow}>
+                  <Ionicons name="alert-circle-outline" size={s(15)} color={styles.errorIcon.color} />
+                  <Text style={styles.modalErrorText}>{addError}</Text>
+                </View>
+              )}
+
               <View style={styles.modalButtons}>
                 <Pressable style={styles.cancelBtn} onPress={closeModal}>
                   <Text style={styles.cancelBtnText}>Abbrechen</Text>
@@ -260,7 +350,10 @@ export default function HabitsScreen() {
                   onPress={handleAdd}
                   disabled={!canAdd || adding}
                 >
-                  <Text style={styles.confirmBtnText}>Hinzufügen</Text>
+                  {adding
+                    ? <ActivityIndicator color={COLORS.black} />
+                    : <Text style={styles.confirmBtnText}>Hinzufügen</Text>
+                  }
                 </Pressable>
               </View>
 
@@ -327,6 +420,55 @@ const styles = StyleSheet.create({
     fontSize: sf(13),
     textAlign: 'center',
     marginTop: sv(8),
+  },
+  errorCard: {
+    backgroundColor: 'rgba(180,30,30,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.35)',
+    borderRadius: s(12),
+    padding: s(16),
+    marginBottom: sv(16),
+    gap: sv(10),
+    alignItems: 'center',
+  },
+  errorIcon: {
+    color: '#E05555',
+  },
+  errorText: {
+    color: '#E05555',
+    fontSize: sf(14),
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingHorizontal: s(16),
+    paddingVertical: sv(8),
+    borderRadius: s(8),
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.5)',
+  },
+  retryText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '700',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    backgroundColor: 'rgba(180,30,30,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.3)',
+    borderRadius: s(10),
+    paddingHorizontal: s(12),
+    paddingVertical: sv(10),
+    marginBottom: sv(12),
+  },
+  errorBannerText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '500',
+    flex: 1,
   },
   dayRow: {
     flexDirection: 'row',
@@ -594,6 +736,18 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: sf(14),
     fontWeight: '600',
+  },
+  modalErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    marginBottom: sv(12),
+  },
+  modalErrorText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '500',
+    flex: 1,
   },
   modalButtons: {
     flexDirection: 'row',

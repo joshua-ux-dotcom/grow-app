@@ -1,63 +1,96 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Modal, TextInput, Platform, KeyboardAvoidingView,
+  Modal, TextInput, Platform, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
+import {
+  getGoals, addGoal, toggleGoal, deleteGoal,
+} from '../../../features/goals/services/goals';
 
 const CATEGORIES = ['Monatlich', 'Jährlich', 'Lifetime'];
 
 export default function GoalsScreen() {
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [goals, setGoals] = useState([]);
-  const [completions, setCompletions] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [inputName, setInputName] = useState('');
   const [inputDeadline, setInputDeadline] = useState('');
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState(null);
 
-  const visibleGoals = goals.filter(g => g.category === selectedCategory);
-  const completedCount = visibleGoals.filter(g => completions[g.id]).length;
-  const total = visibleGoals.length;
+  useEffect(() => {
+    loadGoals();
+  }, [selectedCategory]);
+
+  async function loadGoals() {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data = await getGoals(selectedCategory);
+      setGoals(data);
+    } catch (e) {
+      setLoadError('Ziele konnten nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const completedCount = goals.filter(g => g.completed).length;
+  const total = goals.length;
   const progress = total === 0 ? 0 : completedCount / total;
 
-  const handleToggle = useCallback((id) => {
-    setCompletions(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleToggle = useCallback(async (id, currentCompleted) => {
+    setGoals(prev => prev.map(g =>
+      g.id === id ? { ...g, completed: !currentCompleted } : g
+    ));
+    try {
+      await toggleGoal(id, !currentCompleted);
+    } catch (e) {
+      setActionError('Änderung konnte nicht gespeichert werden.');
+      setGoals(prev => prev.map(g =>
+        g.id === id ? { ...g, completed: currentCompleted } : g
+      ));
+    }
   }, []);
 
-  const handleDelete = useCallback((id) => {
+  const handleDelete = useCallback(async (id) => {
     setGoals(prev => prev.filter(g => g.id !== id));
-    setCompletions(prev => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+    try {
+      await deleteGoal(id);
+    } catch (e) {
+      setActionError('Ziel konnte nicht gelöscht werden.');
+      loadGoals();
+    }
   }, []);
 
-  const handleAdd = useCallback(() => {
+  const handleAdd = useCallback(async () => {
     if (!inputName.trim()) return;
+    setAddError(null);
     setAdding(true);
-    const newGoal = {
-      id: Date.now().toString(),
-      name: inputName.trim(),
-      deadline: inputDeadline.trim() || null,
-      category: selectedCategory,
-    };
-    setGoals(prev => [...prev, newGoal]);
-    setTimeout(() => {
-      setAdding(false);
+    try {
+      const newGoal = await addGoal(inputName.trim(), selectedCategory, inputDeadline.trim());
+      setGoals(prev => [...prev, newGoal]);
       closeModal();
-    }, 200);
+    } catch (e) {
+      setAddError('Ziel konnte nicht gespeichert werden. Bitte versuche es erneut.');
+    } finally {
+      setAdding(false);
+    }
   }, [inputName, inputDeadline, selectedCategory]);
 
   const closeModal = () => {
     setModalVisible(false);
     setInputName('');
     setInputDeadline('');
+    setAddError(null);
   };
 
   const canAdd = inputName.trim().length > 0;
@@ -82,6 +115,28 @@ export default function GoalsScreen() {
           <Text style={styles.title}>Goals</Text>
           <Text style={styles.subtitle}>Set clear goals. Chase your dreams.</Text>
         </View>
+
+        {/* Ladefehler */}
+        {loadError && (
+          <View style={styles.errorCard}>
+            <Ionicons name="alert-circle-outline" size={s(20)} color={styles.errorIcon.color} />
+            <Text style={styles.errorText}>{loadError}</Text>
+            <Pressable onPress={loadGoals} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Erneut versuchen</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Aktionsfehler (Abhaken, Löschen) */}
+        {actionError && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={s(16)} color={styles.errorIcon.color} />
+            <Text style={styles.errorBannerText}>{actionError}</Text>
+            <Pressable onPress={() => setActionError(null)} hitSlop={s(8)}>
+              <Ionicons name="close" size={s(16)} color={COLORS.textDim} />
+            </Pressable>
+          </View>
+        )}
 
         {/* Kategorie-Tabs */}
         <View style={styles.categoryRow}>
@@ -110,7 +165,11 @@ export default function GoalsScreen() {
         </View>
 
         {/* Liste */}
-        {total === 0 ? (
+        {loading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={COLORS.gold} />
+          </View>
+        ) : total === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="trophy-outline" size={s(48)} color={COLORS.textDim} />
             <Text style={styles.emptyText}>Noch keine Ziele.</Text>
@@ -118,45 +177,42 @@ export default function GoalsScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {visibleGoals.map(goal => {
-              const done = !!completions[goal.id];
-              return (
-                <Pressable
-                  key={goal.id}
-                  style={[styles.goalCard, done && styles.goalCardDone]}
-                  onPress={() => handleToggle(goal.id)}
-                >
-                  <View style={styles.goalLeft}>
-                    <View style={[styles.checkbox, done && styles.checkboxDone]}>
-                      {done && <Ionicons name="checkmark" size={s(13)} color={COLORS.black} />}
-                    </View>
-                    <View style={styles.goalTextCol}>
-                      <Text
-                        style={[styles.goalTitle, done && styles.goalTitleDone]}
-                        numberOfLines={2}
-                      >
-                        {goal.name}
-                      </Text>
-                      {goal.deadline ? (
-                        <Text style={[styles.goalDeadline, done && styles.goalDeadlineDone]}>
-                          <Ionicons name="calendar-outline" size={sf(11)} color={done ? COLORS.textDim : COLORS.softGold} />
-                          {'  '}{goal.deadline}
-                        </Text>
-                      ) : null}
-                    </View>
+            {goals.map(goal => (
+              <Pressable
+                key={goal.id}
+                style={[styles.goalCard, goal.completed && styles.goalCardDone]}
+                onPress={() => handleToggle(goal.id, goal.completed)}
+              >
+                <View style={styles.goalLeft}>
+                  <View style={[styles.checkbox, goal.completed && styles.checkboxDone]}>
+                    {goal.completed && <Ionicons name="checkmark" size={s(13)} color={COLORS.black} />}
                   </View>
-                  {done && (
-                    <Pressable
-                      style={styles.trashBtn}
-                      onPress={() => handleDelete(goal.id)}
-                      hitSlop={s(8)}
+                  <View style={styles.goalTextCol}>
+                    <Text
+                      style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}
+                      numberOfLines={2}
                     >
-                      <Ionicons name="trash-outline" size={s(16)} color={COLORS.white} />
-                    </Pressable>
-                  )}
-                </Pressable>
-              );
-            })}
+                      {goal.name}
+                    </Text>
+                    {goal.deadline ? (
+                      <Text style={[styles.goalDeadline, goal.completed && styles.goalDeadlineDone]}>
+                        <Ionicons name="calendar-outline" size={sf(11)} color={goal.completed ? COLORS.textDim : COLORS.softGold} />
+                        {'  '}{goal.deadline}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+                {goal.completed && (
+                  <Pressable
+                    style={styles.trashBtn}
+                    onPress={() => handleDelete(goal.id)}
+                    hitSlop={s(8)}
+                  >
+                    <Ionicons name="trash-outline" size={s(16)} color={COLORS.white} />
+                  </Pressable>
+                )}
+              </Pressable>
+            ))}
           </View>
         )}
 
@@ -196,6 +252,14 @@ export default function GoalsScreen() {
                 returnKeyType="done"
               />
 
+              {/* Fehler beim Hinzufügen */}
+              {addError && (
+                <View style={styles.modalErrorRow}>
+                  <Ionicons name="alert-circle-outline" size={s(15)} color={styles.errorIcon.color} />
+                  <Text style={styles.modalErrorText}>{addError}</Text>
+                </View>
+              )}
+
               <View style={styles.modalButtons}>
                 <Pressable style={styles.cancelBtn} onPress={closeModal}>
                   <Text style={styles.cancelBtnText}>Abbrechen</Text>
@@ -205,7 +269,10 @@ export default function GoalsScreen() {
                   onPress={handleAdd}
                   disabled={!canAdd || adding}
                 >
-                  <Text style={styles.confirmBtnText}>Hinzufügen</Text>
+                  {adding
+                    ? <ActivityIndicator color={COLORS.black} />
+                    : <Text style={styles.confirmBtnText}>Hinzufügen</Text>
+                  }
                 </Pressable>
               </View>
 
@@ -272,6 +339,55 @@ const styles = StyleSheet.create({
     fontSize: sf(13),
     textAlign: 'center',
     marginTop: sv(8),
+  },
+  errorCard: {
+    backgroundColor: 'rgba(180,30,30,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.35)',
+    borderRadius: s(12),
+    padding: s(16),
+    marginBottom: sv(16),
+    gap: sv(10),
+    alignItems: 'center',
+  },
+  errorIcon: {
+    color: '#E05555',
+  },
+  errorText: {
+    color: '#E05555',
+    fontSize: sf(14),
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingHorizontal: s(16),
+    paddingVertical: sv(8),
+    borderRadius: s(8),
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.5)',
+  },
+  retryText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '700',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    backgroundColor: 'rgba(180,30,30,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(220,50,50,0.3)',
+    borderRadius: s(10),
+    paddingHorizontal: s(12),
+    paddingVertical: sv(10),
+    marginBottom: sv(12),
+  },
+  errorBannerText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '500',
+    flex: 1,
   },
   categoryRow: {
     flexDirection: 'row',
@@ -474,6 +590,18 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: sf(15),
     marginBottom: sv(14),
+  },
+  modalErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(8),
+    marginBottom: sv(12),
+  },
+  modalErrorText: {
+    color: '#E05555',
+    fontSize: sf(13),
+    fontWeight: '500',
+    flex: 1,
   },
   modalButtons: {
     flexDirection: 'row',
