@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Modal, TextInput, ActivityIndicator, Platform,
@@ -9,55 +9,25 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
-import { getTodos, addTodo, toggleTodo, deleteTodo } from '../../../features/todos/services/todo'
-
-// ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
-
-function isUrgent(dueAt, completed) {
-  if (!dueAt || completed) return false;
-  const diff = new Date(dueAt) - new Date();
-  return diff > 0 && diff < 60 * 60 * 1000;
-}
-
-function isOverdue(dueAt, completed) {
-  if (!dueAt || completed) return false;
-  return new Date(dueAt) < new Date();
-}
-
-function formatDueLabel(dueAt, completed) {
-  if (!dueAt) return null;
-  const d = new Date(dueAt);
-  const diff = d - new Date();
-
-  if (!completed && diff < 0) return 'Überfällig';
-  if (!completed && diff < 60 * 60 * 1000) {
-    const mins = Math.floor(diff / 60000);
-    return `Noch ${mins} Min.`;
-  }
-
-  const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  const isToday = d.toDateString() === new Date().toDateString();
-  if (isToday) return `Heute um ${timeStr}`;
-  const dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-  return `${dateStr} um ${timeStr}`;
-}
-
-function sortTodos(todos) {
-  const incomplete = [...todos.filter(t => !t.completed)].sort((a, b) => {
-    if (!a.due_at && !b.due_at) return 0;
-    if (!a.due_at) return 1;
-    if (!b.due_at) return -1;
-    return new Date(a.due_at) - new Date(b.due_at);
-  });
-  const completed = todos.filter(t => t.completed);
-  return [...incomplete, ...completed];
-}
+import { useTodos } from '../../../features/todos/hooks/useTodos';
+import { TodoItem } from '../../../features/todos/components/TodoItem';
+import { AddTodoModal } from '../../../features/todos/components/AddTodoModal';
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export default function TodoScreen() {
-  const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    todos,
+    loading,
+    error,
+    completedCount,
+    totalCount,
+    progress,
+    loadTodos,
+    toggle,
+    remove,
+    add,
+  } = useTodos();
 
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -66,62 +36,6 @@ export default function TodoScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [androidStep, setAndroidStep] = useState('date');
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState(null);
-
-const load = useCallback(async () => {
-  try {
-    setError(null);        // wichtig: reset bei neuem Versuch
-    setLoading(true);      // falls du reloads machst
-
-    const data = await getTodos();
-    setTodos(sortTodos(data));
-
-  } catch (e) {
-    console.log('Fehler beim Laden der Todos:', e);
-    setError('Todos konnten nicht geladen werden.');
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const completedCount = todos.filter(t => t.completed).length;
-  const total = todos.length;
-  const progress = total === 0 ? 0 : completedCount / total;
-
-  const handleToggle = useCallback(async (id, current) => {
-    const next = !current;
-    setTodos(prev => sortTodos(prev.map(t => t.id === id ? { ...t, completed: next } : t)));
-    try {
-      await toggleTodo(id, next);
-    } catch {
-      setTodos(prev => sortTodos(prev.map(t => t.id === id ? { ...t, completed: current } : t)));
-    }
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    setTodos(prev => prev.filter(t => t.id !== id));
-    try {
-      await deleteTodo(id);
-    } catch {
-      load();
-    }
-  }, [load]);
-
-  const handleAdd = useCallback(async () => {
-    if (!inputTitle.trim()) return;
-    setAdding(true);
-    try {
-      const newTodo = await addTodo(inputTitle.trim(), selectedDate?.toISOString() ?? null);
-      setTodos(prev => sortTodos([...prev, newTodo]));
-      closeModal();
-    } catch (e) {
-      console.log('Fehler beim Hinzufügen:', e);
-    } finally {
-      setAdding(false);
-    }
-  }, [inputTitle, selectedDate]);
 
   const closeModal = () => {
     setModalVisible(false);
@@ -135,20 +49,27 @@ const load = useCallback(async () => {
     ? `${selectedDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} um ${selectedDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
     : 'Fälligkeitsdatum setzen';
 
+  const handleAdd = async () => {
+    if (!inputTitle.trim() || adding) return;
+
+    try {
+      setAdding(true);
+      await add(inputTitle.trim(), selectedDate);
+      closeModal();
+    } catch (e) {
+      console.log('Fehler beim Hinzufügen der Todo:', e);
+    } finally {
+      setAdding(false);
+    }
+  };  
+
   // ────────────────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>Lädt...</Text>
-      </View>
-    );
-  }
   if (error) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error}</Text>
 
-        <Pressable onPress={load} style={styles.retryButton}>
+        <Pressable onPress={loadTodos} style={styles.retryButton}>
           <Text style={styles.retryText}>Erneut versuchen</Text>
         </Pressable>
       </View>
@@ -181,7 +102,7 @@ const load = useCallback(async () => {
         {/* Fortschritt */}
         <View style={styles.progressRow}>
           <Text style={styles.sectionTitle}>AUFGABEN</Text>
-          <Text style={styles.counter}>{completedCount}/{total} erledigt</Text>
+          <Text style={styles.counter}>{completedCount}/{totalCount} erledigt</Text>
         </View>
         <View style={styles.progressCard}>
           <View style={styles.progressTrack}>
@@ -191,7 +112,9 @@ const load = useCallback(async () => {
 
         {/* Liste */}
         {loading ? (
-          <ActivityIndicator color={COLORS.gold} style={{ marginTop: sv(40) }} />
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={COLORS.gold} />
+          </View>
         ) : todos.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle-outline" size={s(48)} color={COLORS.textDim} />
@@ -200,73 +123,14 @@ const load = useCallback(async () => {
           </View>
         ) : (
           <View style={styles.list}>
-            {todos.map(todo => {
-              const urgent  = isUrgent(todo.due_at, todo.completed);
-              const overdue = isOverdue(todo.due_at, todo.completed);
-              const dueLabel = formatDueLabel(todo.due_at, todo.completed);
-
-              return (
-                <View key={todo.id} style={styles.todoCardWrap}>
-                  <Pressable
-                    style={[
-                      styles.todoCard,
-                      todo.completed && styles.todoCardDone,
-                      urgent   && styles.todoCardUrgent,
-                      overdue  && styles.todoCardOverdue,
-                    ]}
-                    onPress={() => handleToggle(todo.id, todo.completed)}
-                  >
-                    <View style={styles.todoLeft}>
-                      <View style={[
-                        styles.checkbox,
-                        todo.completed && styles.checkboxDone,
-                        urgent   && styles.checkboxUrgent,
-                        overdue  && styles.checkboxOverdue,
-                      ]}>
-                        {todo.completed && (
-                          <Ionicons name="checkmark" size={s(13)} color={COLORS.black} />
-                        )}
-                      </View>
-                      <View style={styles.todoTextWrap}>
-                        <Text
-                          style={[
-                            styles.todoTitle,
-                            todo.completed && styles.todoTitleDone,
-                            urgent   && styles.todoTitleUrgent,
-                            overdue  && styles.todoTitleOverdue,
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {todo.title}
-                        </Text>
-                        {dueLabel && (
-                          <Text style={[
-                            styles.todoSub,
-                            urgent  && styles.todoSubUrgent,
-                            overdue && styles.todoSubOverdue,
-                          ]}>
-                            {dueLabel}
-                          </Text>
-                        )}
-                      </View>
-
-                      {todo.completed && (
-                        <Pressable
-                          style={styles.completedDeleteButton}
-                          onPress={(event) => {
-                            event.stopPropagation();
-                            handleDelete(todo.id);
-                          }}
-                          hitSlop={s(10)}
-                        >
-                          <Ionicons name="trash-outline" size={s(21)} color={COLORS.white} />
-                        </Pressable>
-                      )}
-                    </View>
-                  </Pressable>
-                </View>
-              );
-            })}
+            {todos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={toggle}
+                onDelete={remove}
+              />
+            ))}
           </View>
         )}
 
@@ -278,109 +142,21 @@ const load = useCallback(async () => {
       </ScrollView>
 
       {/* ── Add-Modal ─────────────────────────────────────────────────────── */}
-      <Modal
+      <AddTodoModal
         visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeModal}
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-        <Pressable style={styles.overlay} onPress={closeModal}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Neue Aufgabe</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Was willst du erledigen?"
-              placeholderTextColor={COLORS.textDim}
-              value={inputTitle}
-              onChangeText={setInputTitle}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleAdd}
-            />
-
-            {/* Datum/Uhrzeit Toggle */}
-            <Pressable
-              style={[styles.dateToggle, showDatePicker && styles.dateToggleActive]}
-              onPress={() => {
-                if (!showDatePicker) {
-                  setSelectedDate(new Date(Date.now() + 60 * 60 * 1000));
-                  setShowDatePicker(true);
-                } else {
-                  setShowDatePicker(false);
-                  setSelectedDate(null);
-                }
-              }}
-            >
-              <Ionicons
-                name={showDatePicker ? 'time' : 'time-outline'}
-                size={s(17)}
-                color={showDatePicker ? COLORS.gold : COLORS.textSecondary}
-              />
-              <Text style={[styles.dateToggleText, showDatePicker && styles.dateToggleTextActive]}>
-                {datePickerLabel}
-              </Text>
-              {showDatePicker && (
-                <Ionicons name="close-circle" size={s(16)} color={COLORS.textDim} />
-              )}
-            </Pressable>
-
-            {/* DateTimePicker */}
-            {showDatePicker && (
-              <DateTimePicker
-                value={selectedDate ?? new Date()}
-                mode={Platform.OS === 'android' ? androidStep : 'datetime'}
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                themeVariant="dark"
-                accentColor={COLORS.gold}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') {
-                    if (event.type === 'dismissed') {
-                      setShowDatePicker(false);
-                      setAndroidStep('date');
-                    } else if (androidStep === 'date') {
-                      setSelectedDate(date);
-                      setAndroidStep('time');
-                    } else {
-                      setSelectedDate(date);
-                      setShowDatePicker(false);
-                      setAndroidStep('date');
-                    }
-                  } else {
-                    if (date) setSelectedDate(date);
-                  }
-                }}
-                style={styles.datePicker}
-              />
-            )}
-
-            {/* Buttons */}
-            <View style={styles.modalButtons}>
-              <Pressable style={styles.cancelBtn} onPress={closeModal}>
-                <Text style={styles.cancelBtnText}>Abbrechen</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.confirmBtn, (!inputTitle.trim() || adding) && styles.confirmBtnDisabled]}
-                onPress={handleAdd}
-                disabled={!inputTitle.trim() || adding}
-              >
-                {adding
-                  ? <ActivityIndicator color={COLORS.black} size="small" />
-                  : <Text style={styles.confirmBtnText}>Hinzufügen</Text>
-                }
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
+        onClose={closeModal}
+        inputTitle={inputTitle}
+        setInputTitle={setInputTitle}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        showDatePicker={showDatePicker}
+        setShowDatePicker={setShowDatePicker}
+        androidStep={androidStep}
+        setAndroidStep={setAndroidStep}
+        datePickerLabel={datePickerLabel}
+        adding={adding}
+        onAdd={handleAdd}
+      />
     </View>
   );
 }
@@ -495,82 +271,6 @@ const styles = StyleSheet.create({
     gap: sv(10),
     marginBottom: sv(8),
   },
-  todoCardWrap: {
-    borderRadius: s(14),
-    overflow: 'hidden',
-  },
-  todoCard: {
-    minHeight: sv(68),
-    borderRadius: s(14),
-    borderWidth: 1,
-    borderColor: COLORS.goldBorder ?? 'rgba(212,175,55,0.22)',
-    backgroundColor: COLORS.darkCard ?? 'rgba(255,255,255,0.035)',
-    paddingHorizontal: s(16),
-    paddingVertical: sv(12),
-    justifyContent: 'center',
-  },
-  todoCardDone: {
-    borderColor: 'rgba(212,175,55,0.15)',
-    backgroundColor: 'rgba(212,175,55,0.04)',
-    opacity: 0.65,
-  },
-  todoCardUrgent: {
-    borderColor: 'rgba(220,60,60,0.6)',
-    backgroundColor: 'rgba(220,60,60,0.08)',
-  },
-  todoCardOverdue: {
-    borderColor: 'rgba(180,40,40,0.5)',
-    backgroundColor: 'rgba(180,40,40,0.07)',
-  },
-  todoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(14),
-  },
-  checkbox: {
-    width: s(24),
-    height: s(24),
-    borderRadius: s(6),
-    borderWidth: 1.5,
-    borderColor: COLORS.goldBorder ?? '#B8924B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  checkboxDone: {
-    backgroundColor: COLORS.gold ?? '#D4AF37',
-    borderColor: COLORS.gold ?? '#D4AF37',
-  },
-  checkboxUrgent: { borderColor: 'rgba(220,60,60,0.8)' },
-  checkboxOverdue: { borderColor: 'rgba(180,40,40,0.8)' },
-  todoTextWrap: { flex: 1 },
-  todoTitle: {
-    color: COLORS.white ?? '#F4E7C5',
-    fontSize: sf(16),
-    fontWeight: '700',
-  },
-  todoTitleDone: {
-    color: COLORS.textDim ?? '#6B6B6B',
-    textDecorationLine: 'line-through',
-  },
-  todoTitleUrgent:  { color: 'rgb(255,90,90)' },
-  todoTitleOverdue: { color: 'rgb(220,70,70)' },
-  todoSub: {
-    color: COLORS.textSecondary ?? '#A99B84',
-    fontSize: sf(12),
-    marginTop: sv(3),
-  },
-  todoSubUrgent:  { color: 'rgba(255,90,90,0.9)',  fontWeight: '600' },
-  todoSubOverdue: { color: 'rgba(220,70,70,0.9)',  fontWeight: '600' },
-  completedDeleteButton: {
-    width: s(36),
-    height: s(36),
-    borderRadius: s(18),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: s(8),
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
   addButton: {
     height: sv(54),
     borderRadius: s(14),
@@ -588,111 +288,12 @@ const styles = StyleSheet.create({
     fontSize: sf(15),
     fontWeight: '700',
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: COLORS.darkCard ?? '#111111',
-    borderTopLeftRadius: s(24),
-    borderTopRightRadius: s(24),
-    paddingHorizontal: s(20),
-    paddingTop: sv(12),
-    paddingBottom: sv(40),
-    borderTopWidth: 1,
-    borderColor: COLORS.goldBorder ?? 'rgba(212,175,55,0.25)',
-  },
-  sheetHandle: {
-    width: s(40),
-    height: sv(4),
-    borderRadius: 999,
-    backgroundColor: COLORS.textDim ?? '#444',
-    alignSelf: 'center',
-    marginBottom: sv(20),
-  },
-  sheetTitle: {
-    color: COLORS.paleGold ?? '#F2D48A',
-    fontSize: sf(20),
-    fontWeight: '700',
-    marginBottom: sv(16),
-  },
-  input: {
-    backgroundColor: COLORS.darkCard2 ?? 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle ?? 'rgba(212,175,55,0.2)',
-    borderRadius: s(12),
-    paddingHorizontal: s(14),
-    paddingVertical: sv(12),
-    color: COLORS.white,
-    fontSize: sf(15),
-    marginBottom: sv(12),
-  },
-  dateToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(8),
-    paddingHorizontal: s(14),
-    paddingVertical: sv(11),
-    borderRadius: s(12),
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle ?? 'rgba(212,175,55,0.2)',
-    backgroundColor: COLORS.darkCard2 ?? 'rgba(255,255,255,0.04)',
-    marginBottom: sv(12),
-  },
-  dateToggleActive: {
-    borderColor: COLORS.gold ?? '#D4AF37',
-    backgroundColor: 'rgba(212,175,55,0.07)',
-  },
-  dateToggleText: {
-    flex: 1,
-    color: COLORS.textSecondary ?? '#9B9B9B',
-    fontSize: sf(14),
-  },
-  dateToggleTextActive: {
-    color: COLORS.softGold ?? '#E8C97A',
-  },
-  datePicker: {
-    marginBottom: sv(12),
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: s(10),
-    marginTop: sv(4),
-  },
-  cancelBtn: {
-    flex: 1,
-    height: sv(50),
-    borderRadius: s(12),
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle ?? 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    color: COLORS.textSecondary ?? '#9B9B9B',
-    fontSize: sf(15),
-    fontWeight: '600',
-  },
-  confirmBtn: {
-    flex: 2,
-    height: sv(50),
-    borderRadius: s(12),
-    backgroundColor: COLORS.gold ?? '#D4AF37',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtnDisabled: { opacity: 0.4 },
-  confirmBtnText: {
-    color: COLORS.black ?? '#050505',
-    fontSize: sf(15),
-    fontWeight: '700',
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: COLORS.background,
   },
 
   errorText: {
