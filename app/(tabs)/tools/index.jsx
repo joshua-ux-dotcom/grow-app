@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
- 
+
 import ToolCard from '../../../components/ui/ToolCard'
 import TrackerBox from '../../../components/ui/Trackerbox';
 import { tools } from '../../../data/tools';
@@ -10,18 +10,27 @@ import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
 import { useProfile } from '../../../features/profile/hooks/useProfile';
 import { s, sv, sf, SCREEN } from '../../../constants/layout';
+import { getHabitStreak, getTodayHabitProgress } from '../../../features/habits/services/habits';
+import { getDeepWorkTimeLeft } from '../../../features/deep-work/deepWorkStore';
+import { useSteps } from '../../../features/steps/hooks/useSteps';
 
 // < 900pt (iPhone 15 Pro 852pt, iPhone 16 Pro 874pt): kompakte Abstände
 // < 700pt (iPhone SE 667pt): sehr kompakte Abstände
 const compact = SCREEN.height < 900;
 const veryCompact = SCREEN.height < 700;
  
-const TRACKER_ITEMS = [
-  { value: '7', label: 'Tage Streak' },
-  { value: '68%', label: 'Tagesziele' },
-  { value: '24:37', label: 'Deep Work' },
-  { value: '5.432', label: 'Schritte' },
-];
+function formatDeepWork(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function formatSteps(count) {
+  if (count >= 1000) {
+    return `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, '0')}`;
+  }
+  return String(count);
+}
  
 function renderToolIcon(tool) {
   if (tool.type === 'Ionicons')
@@ -36,6 +45,38 @@ function renderToolIcon(tool) {
 export default function ToolsScreen() {
   const { username, growPoints } = useProfile();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [streak, setStreak] = useState(0);
+  const [habitProgress, setHabitProgress] = useState({ completed: 0, total: 0 });
+  const [deepWorkTime, setDeepWorkTime] = useState(0);
+  const steps = useSteps();
+
+  useEffect(() => {
+    getHabitStreak().then(setStreak).catch(() => {});
+    getTodayHabitProgress().then(setHabitProgress).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function tick() {
+      const t = await getDeepWorkTimeLeft();
+      if (mounted) setDeepWorkTime(t);
+    }
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
+
+  const habitPercent = habitProgress.total === 0
+    ? '–'
+    : `${Math.round((habitProgress.completed / habitProgress.total) * 100)}%`;
+
+  const trackerItems = [
+    { value: String(streak), label: 'Tage Streak' },
+    { value: habitPercent, label: 'Tagesziele' },
+    { value: deepWorkTime > 0 ? formatDeepWork(deepWorkTime) : '00:00', label: 'Deep Work' },
+    { value: formatSteps(steps), label: 'Schritte' },
+  ];
  
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -144,7 +185,7 @@ export default function ToolsScreen() {
             Deine heutigen Fortschritte auf einen Blick.
           </Text>
           <View style={styles.trackerRow}>
-            {TRACKER_ITEMS.map((item, index) => (
+            {trackerItems.map((item, index) => (
               <TrackerBox key={`tracker-${index}`} value={item.value} label={item.label} />
             ))}
           </View>
