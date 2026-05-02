@@ -1,24 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable,
-  Modal, TextInput, Platform, KeyboardAvoidingView, ActivityIndicator,
-} from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
-import {
-  getGoals, addGoal, toggleGoal, deleteGoal,
-} from '../../../features/goals/services/goals';
-
-const CATEGORIES = ['Monatlich', 'Jährlich', 'Lifetime'];
+import { GOAL_CATEGORIES } from '../../../features/goals/utils/goalUtils';
+import { useGoals } from '../../../features/goals/hooks/useGoals';
+import { GoalItem } from '../../../features/goals/components/GoalItem';
+import { AddGoalModal } from '../../../features/goals/components/AddGoalModal';
 
 export default function GoalsScreen() {
   const [selectedCategory, setSelectedCategory] = useState(0);
-  const [goals, setGoals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [actionError, setActionError] = useState(null);
+  const {
+    goals,
+    loading,
+    loadError,
+    actionError,
+    completedCount,
+    total,
+    progress,
+    toggle,
+    remove,
+    add,
+  } = useGoals(selectedCategory);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [inputName, setInputName] = useState('');
@@ -26,65 +30,21 @@ export default function GoalsScreen() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState(null);
 
-  useEffect(() => {
-    loadGoals();
-  }, [selectedCategory]);
-
-  async function loadGoals() {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const data = await getGoals(selectedCategory);
-      setGoals(data);
-    } catch (e) {
-      setLoadError('Ziele konnten nicht geladen werden.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const completedCount = goals.filter(g => g.completed).length;
-  const total = goals.length;
-  const progress = total === 0 ? 0 : completedCount / total;
-
-  const handleToggle = useCallback(async (id, currentCompleted) => {
-    setGoals(prev => prev.map(g =>
-      g.id === id ? { ...g, completed: !currentCompleted } : g
-    ));
-    try {
-      await toggleGoal(id, !currentCompleted);
-    } catch (e) {
-      setActionError('Änderung konnte nicht gespeichert werden.');
-      setGoals(prev => prev.map(g =>
-        g.id === id ? { ...g, completed: currentCompleted } : g
-      ));
-    }
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    setGoals(prev => prev.filter(g => g.id !== id));
-    try {
-      await deleteGoal(id);
-    } catch (e) {
-      setActionError('Ziel konnte nicht gelöscht werden.');
-      loadGoals();
-    }
-  }, []);
-
   const handleAdd = useCallback(async () => {
     if (!inputName.trim()) return;
+
     setAddError(null);
     setAdding(true);
+
     try {
-      const newGoal = await addGoal(inputName.trim(), selectedCategory, inputDeadline.trim());
-      setGoals(prev => [...prev, newGoal]);
+      await add(inputName.trim(), selectedCategory, inputDeadline.trim());
       closeModal();
     } catch (e) {
       setAddError('Ziel konnte nicht gespeichert werden. Bitte versuche es erneut.');
     } finally {
       setAdding(false);
     }
-  }, [inputName, inputDeadline, selectedCategory]);
+  }, [inputName, inputDeadline, selectedCategory, add]);
 
   const closeModal = () => {
     setModalVisible(false);
@@ -140,7 +100,7 @@ export default function GoalsScreen() {
 
         {/* Kategorie-Tabs */}
         <View style={styles.categoryRow}>
-          {CATEGORIES.map((cat, index) => (
+          {GOAL_CATEGORIES.map((cat, index) => (
             <Pressable
               key={cat}
               style={[styles.catBtn, selectedCategory === index && styles.catBtnActive]}
@@ -155,7 +115,7 @@ export default function GoalsScreen() {
 
         {/* Fortschritt */}
         <View style={styles.progressRow}>
-          <Text style={styles.sectionTitle}>{CATEGORIES[selectedCategory].toUpperCase()}</Text>
+          <Text style={styles.sectionTitle}>{GOAL_CATEGORIES[selectedCategory].toUpperCase()}</Text>
           <Text style={styles.counter}>{completedCount}/{total} erreicht</Text>
         </View>
         <View style={styles.progressCard}>
@@ -178,40 +138,12 @@ export default function GoalsScreen() {
         ) : (
           <View style={styles.list}>
             {goals.map(goal => (
-              <Pressable
+              <GoalItem
                 key={goal.id}
-                style={[styles.goalCard, goal.completed && styles.goalCardDone]}
-                onPress={() => handleToggle(goal.id, goal.completed)}
-              >
-                <View style={styles.goalLeft}>
-                  <View style={[styles.checkbox, goal.completed && styles.checkboxDone]}>
-                    {goal.completed && <Ionicons name="checkmark" size={s(13)} color={COLORS.black} />}
-                  </View>
-                  <View style={styles.goalTextCol}>
-                    <Text
-                      style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}
-                      numberOfLines={2}
-                    >
-                      {goal.name}
-                    </Text>
-                    {goal.deadline ? (
-                      <Text style={[styles.goalDeadline, goal.completed && styles.goalDeadlineDone]}>
-                        <Ionicons name="calendar-outline" size={sf(11)} color={goal.completed ? COLORS.textDim : COLORS.softGold} />
-                        {'  '}{goal.deadline}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-                {goal.completed && (
-                  <Pressable
-                    style={styles.trashBtn}
-                    onPress={() => handleDelete(goal.id)}
-                    hitSlop={s(8)}
-                  >
-                    <Ionicons name="trash-outline" size={s(16)} color={COLORS.white} />
-                  </Pressable>
-                )}
-              </Pressable>
+                goal={goal}
+                onToggle={toggle}
+                onDelete={remove}
+              />
             ))}
           </View>
         )}
@@ -225,62 +157,18 @@ export default function GoalsScreen() {
       </ScrollView>
 
       {/* ── Add-Modal ─────────────────────────────────────────────────────── */}
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeModal}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Pressable style={styles.overlay} onPress={closeModal}>
-            <Pressable style={styles.sheet} onPress={() => {}}>
-
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Neues Ziel</Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Mein Ziel"
-                placeholderTextColor={COLORS.textDim}
-                value={inputName}
-                onChangeText={setInputName}
-                autoFocus
-                returnKeyType="next"
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Deadline (optional, z.B. 31.12.2025)"
-                placeholderTextColor={COLORS.textDim}
-                value={inputDeadline}
-                onChangeText={setInputDeadline}
-                returnKeyType="done"
-              />
-
-              {/* Fehler beim Hinzufügen */}
-              {addError && (
-                <View style={styles.modalErrorRow}>
-                  <Ionicons name="alert-circle-outline" size={s(15)} color={styles.errorIcon.color} />
-                  <Text style={styles.modalErrorText}>{addError}</Text>
-                </View>
-              )}
-
-              <View style={styles.modalButtons}>
-                <Pressable style={styles.cancelBtn} onPress={closeModal}>
-                  <Text style={styles.cancelBtnText}>Abbrechen</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.confirmBtn, (!canAdd || adding) && styles.confirmBtnDisabled]}
-                  onPress={handleAdd}
-                  disabled={!canAdd || adding}
-                >
-                  {adding
-                    ? <ActivityIndicator color={COLORS.black} />
-                    : <Text style={styles.confirmBtnText}>Hinzufügen</Text>
-                  }
-                </Pressable>
-              </View>
-
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
-
+      <AddGoalModal
+        visible={modalVisible}
+        onClose={closeModal}
+        inputName={inputName}
+        setInputName={setInputName}
+        inputDeadline={inputDeadline}
+        setInputDeadline={setInputDeadline}
+        addError={addError}
+        canAdd={canAdd}
+        adding={adding}
+        onAdd={handleAdd}
+      />
     </View>
   );
 }
@@ -471,69 +359,6 @@ const styles = StyleSheet.create({
     gap: sv(10),
     marginBottom: sv(8),
   },
-  goalCard: {
-    minHeight: sv(64),
-    borderRadius: s(14),
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.22)',
-    backgroundColor: COLORS.darkCard,
-    paddingHorizontal: s(16),
-    paddingVertical: sv(12),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  goalCardDone: {
-    borderColor: 'rgba(212,175,55,0.15)',
-    backgroundColor: 'rgba(212,175,55,0.04)',
-    opacity: 0.65,
-  },
-  goalLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(14),
-    flex: 1,
-  },
-  checkbox: {
-    width: s(24),
-    height: s(24),
-    borderRadius: s(6),
-    borderWidth: 1.5,
-    borderColor: COLORS.goldBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  checkboxDone: {
-    backgroundColor: COLORS.gold,
-    borderColor: COLORS.gold,
-  },
-  goalTextCol: {
-    flex: 1,
-    gap: sv(3),
-  },
-  goalTitle: {
-    color: COLORS.white,
-    fontSize: sf(16),
-    fontWeight: '700',
-  },
-  goalTitleDone: {
-    color: COLORS.textDim,
-    textDecorationLine: 'line-through',
-  },
-  goalDeadline: {
-    color: COLORS.softGold,
-    fontSize: sf(12),
-    fontWeight: '500',
-  },
-  goalDeadlineDone: {
-    color: COLORS.textDim,
-  },
-  trashBtn: {
-    padding: s(4),
-    opacity: 0.5,
-    marginLeft: s(8),
-  },
   addButton: {
     height: sv(54),
     borderRadius: s(14),
@@ -548,91 +373,6 @@ const styles = StyleSheet.create({
   },
   addText: {
     color: COLORS.softGold,
-    fontSize: sf(15),
-    fontWeight: '700',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: COLORS.darkCard,
-    borderTopLeftRadius: s(24),
-    borderTopRightRadius: s(24),
-    paddingHorizontal: s(20),
-    paddingTop: sv(12),
-    paddingBottom: sv(40),
-    borderTopWidth: 1,
-    borderColor: 'rgba(212,175,55,0.25)',
-  },
-  sheetHandle: {
-    width: s(40),
-    height: sv(4),
-    borderRadius: 999,
-    backgroundColor: COLORS.textDim,
-    alignSelf: 'center',
-    marginBottom: sv(20),
-  },
-  sheetTitle: {
-    color: COLORS.paleGold,
-    fontSize: sf(20),
-    fontWeight: '700',
-    marginBottom: sv(16),
-  },
-  input: {
-    backgroundColor: COLORS.darkCard2,
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle,
-    borderRadius: s(12),
-    paddingHorizontal: s(14),
-    paddingVertical: sv(12),
-    color: COLORS.white,
-    fontSize: sf(15),
-    marginBottom: sv(14),
-  },
-  modalErrorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(8),
-    marginBottom: sv(12),
-  },
-  modalErrorText: {
-    color: '#E05555',
-    fontSize: sf(13),
-    fontWeight: '500',
-    flex: 1,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: s(10),
-    marginTop: sv(6),
-  },
-  cancelBtn: {
-    flex: 1,
-    height: sv(50),
-    borderRadius: s(12),
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
-    color: COLORS.textSecondary,
-    fontSize: sf(15),
-    fontWeight: '600',
-  },
-  confirmBtn: {
-    flex: 2,
-    height: sv(50),
-    borderRadius: s(12),
-    backgroundColor: COLORS.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtnDisabled: { opacity: 0.4 },
-  confirmBtnText: {
-    color: COLORS.black,
     fontSize: sf(15),
     fontWeight: '700',
   },
