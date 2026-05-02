@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Modal,
   TextInput, ScrollView, Animated, KeyboardAvoidingView, Platform
@@ -7,240 +6,51 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
-
-// ─── Picker-Daten ─────────────────────────────────────────────────────────────
-
-const HOURS   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
-
-const ITEM_H = sv(48);
-const VISIBLE = 5; // ungerade → mittlerer Item ist ausgewählt
-
-const EXAMPLE_CATEGORIES = ['Lernen', 'Arbeit', 'Sport'];
-
-// ─── PickerColumn ─────────────────────────────────────────────────────────────
-
-function PickerColumn({ data, initialIndex, onChange }) {
-  const ref = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      ref.current?.scrollTo({ y: initialIndex * ITEM_H, animated: false });
-    }, 50);
-    return () => clearTimeout(t);
-  }, []);
-
-  const onScrollEnd = useCallback((e) => {
-    const idx = Math.max(0, Math.min(data.length - 1,
-      Math.round(e.nativeEvent.contentOffset.y / ITEM_H)
-    ));
-    setActiveIndex(idx);
-    onChange(idx);
-  }, [data.length, onChange]);
-
-  const centerOffset = Math.floor(VISIBLE / 2) * ITEM_H;
-
-  return (
-    <View style={picker.wrap}>
-      <View pointerEvents="none" style={[picker.line, { top: centerOffset }]} />
-      <View pointerEvents="none" style={[picker.line, { top: centerOffset + ITEM_H }]} />
-
-      <ScrollView
-        ref={ref}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={onScrollEnd}
-        onScrollEndDrag={onScrollEnd}
-        nestedScrollEnabled
-        contentContainerStyle={{ paddingVertical: centerOffset }}
-        style={picker.scroll}
-      >
-        {data.map((val, i) => {
-          const isActive = i === activeIndex;
-          return (
-            <View key={i} style={picker.item}>
-              <Text style={[
-                picker.text,
-                isActive && picker.textActive,
-              ]}>
-                {val}
-              </Text>
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {/* Gradient-Überblendung oben */}
-      <View pointerEvents="none" style={picker.fadeTop} />
-      {/* Gradient-Überblendung unten */}
-      <View pointerEvents="none" style={picker.fadeBottom} />
-    </View>
-  );
-}
-
-const picker = StyleSheet.create({
-  wrap: {
-    height: ITEM_H * VISIBLE,
-    overflow: 'hidden',
-    flex: 1,
-    position: 'relative',
-  },
-  scroll: {
-    flex: 1,
-  },
-  item: {
-    height: ITEM_H,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    color: COLORS.textFaint,
-    fontSize: sf(24),
-    fontWeight: '300',
-    fontVariant: ['tabular-nums'],
-  },
-  textActive: {
-    color: COLORS.gold,
-    fontSize: sf(34),
-    fontWeight: '500',
-  },
-  line: {
-    position: 'absolute',
-    left: s(8),
-    right: s(8),
-    height: 1,
-    backgroundColor: COLORS.goldBorder,
-    zIndex: 2,
-  },
-  fadeTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: ITEM_H * 2,
-    background: 'transparent',
-    // React Native doesn't support CSS gradients, so we fake it with opacity layers
-    backgroundColor: 'transparent',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  fadeBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: ITEM_H * 2,
-    backgroundColor: 'transparent',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-});
-
-// ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
-
-function formatTime(totalSeconds) {
-  const h   = Math.floor(totalSeconds / 3600);
-  const m   = Math.floor((totalSeconds % 3600) / 60);
-  const sec = totalSeconds % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  }
-  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-}
-
-// ─── Hauptkomponente ──────────────────────────────────────────────────────────
+import {
+  HOURS,
+  MINUTES,
+  EXAMPLE_CATEGORIES,
+  DEFAULT_SESSION_MINUTES,
+  formatTime,
+} from '../../../features/deep-work/utils/deepWorkUtils';
+import { PickerColumn } from '../../../features/deep-work/components/PickerColumn';
+import { DeepWorkDoneModal } from '../../../features/deep-work/components/DeepWorkDoneModal';
+import { useDeepWorkSession } from '../../../features/deep-work/hooks/useDeepWorkSession';
 
 export default function DeepWorkScreen() {
-  const [phase, setPhase]         = useState('idle');
-  const [taskName, setTaskName]   = useState('');
-  const [category, setCategory]   = useState('');
-  const [totalMinutes, setTotalMinutes] = useState(60);
-  const [remaining, setRemaining] = useState(0);
+  const {
+    phase,
+    taskName,
+    category,
+    totalMinutes,
+    remaining,
+    progress,
+    canStart,
+    pulseAnim,
 
-  // Setup-Modal
-  const [setupVisible, setSetupVisible] = useState(false);
-  const [inputTask, setInputTask]       = useState('');
-  const [selHours, setSelHours]         = useState(0);
-  const [selMinutes, setSelMinutes]     = useState(30);
-  const [selCategory, setSelCategory]   = useState(EXAMPLE_CATEGORIES[0]);
-  const [customCategory, setCustomCategory] = useState('');
+    setupVisible,
+    inputTask,
+    selHours,
+    selMinutes,
+    selCategory,
+    customCategory,
 
-  // Fertig-Modal
-  const [doneVisible, setDoneVisible] = useState(false);
+    doneVisible,
 
-  const intervalRef = useRef(null);
-  const pulseAnim   = useRef(new Animated.Value(1)).current;
+    setInputTask,
+    setSelHours,
+    setSelMinutes,
+    setSelCategory,
+    setCustomCategory,
 
-  useEffect(() => {
-    if (phase === 'running') {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1,    duration: 900, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.stopAnimation();
-      pulseAnim.setValue(1);
-    }
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === 'running') {
-      intervalRef.current = setInterval(() => {
-        setRemaining(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setPhase('idle');
-            setDoneVisible(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(intervalRef.current);
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [phase]);
-
-  const startSession = useCallback(() => {
-    const mins = selHours * 60 + selMinutes;
-    const cat  = customCategory.trim() || selCategory;
-    setTaskName(inputTask.trim() || 'Deep Work');
-    setCategory(cat);
-    setTotalMinutes(mins);
-    setRemaining(mins * 60);
-    setSetupVisible(false);
-    setPhase('running');
-  }, [inputTask, selHours, selMinutes, selCategory, customCategory]);
-
-  const togglePause = useCallback(() => {
-    setPhase(p => p === 'running' ? 'paused' : 'running');
-  }, []);
-
-  const endSession = useCallback(() => {
-    clearInterval(intervalRef.current);
-    setPhase('idle');
-    setRemaining(0);
-  }, []);
-
-  const openSetup = useCallback(() => {
-    setInputTask('');
-    setSelHours(0);
-    setSelMinutes(30);
-    setSelCategory(EXAMPLE_CATEGORIES[0]);
-    setCustomCategory('');
-    setSetupVisible(true);
-  }, []);
-
-  const progress = totalMinutes > 0
-    ? 1 - remaining / (totalMinutes * 60)
-    : 0;
-
-  const canStart = selHours > 0 || selMinutes > 0;
+    startSession,
+    togglePause,
+    endSession,
+    openSetup,
+    closeSetup,
+    closeDone,
+  } = useDeepWorkSession();
+  
 
   // ─── Idle-Ansicht ──────────────────────────────────────────────────────────
   if (phase === 'idle') {
@@ -280,14 +90,14 @@ export default function DeepWorkScreen() {
           visible={setupVisible}
           transparent
           animationType="slide"
-          onRequestClose={() => setSetupVisible(false)}
+          onRequestClose={closeSetup}
         >
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <View style={styles.overlay}>
-              <Pressable style={StyleSheet.absoluteFill} onPress={() => setSetupVisible(false)} />
+              <Pressable style={StyleSheet.absoluteFill} onPress={closeSetup} />
               <View style={styles.sheet}>
                 <View style={styles.sheetHandle} />
                 <Text style={styles.sheetTitle}>Neue Session</Text>
@@ -314,7 +124,7 @@ export default function DeepWorkScreen() {
                   <Text style={styles.pickerSeparator}>h</Text>
                   <PickerColumn
                     data={MINUTES}
-                    initialIndex={30}
+                    initialIndex={DEFAULT_SESSION_MINUTES}
                     onChange={setSelMinutes}
                   />
                   <Text style={styles.pickerSeparator}>min</Text>
@@ -375,27 +185,11 @@ export default function DeepWorkScreen() {
         </Modal>
 
         {/* ── Fertig-Modal ───────────────────────────────────────────────── */}
-        <Modal
+        <DeepWorkDoneModal
           visible={doneVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setDoneVisible(false)}
-        >
-          <Pressable style={styles.overlay} onPress={() => setDoneVisible(false)}>
-            <Pressable style={[styles.sheet, styles.doneSheet]} onPress={() => {}}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="trophy-outline" size={s(36)} color={COLORS.gold} />
-              </View>
-              <Text style={styles.doneTitle}>Session abgeschlossen!</Text>
-              <Text style={styles.doneSub}>
-                {totalMinutes} Min. fokussierte Arbeit. Starke Leistung.
-              </Text>
-              <Pressable style={[styles.confirmBtn, { marginTop: sv(8) }]} onPress={() => setDoneVisible(false)}>
-                <Text style={styles.confirmBtnText}>Weiter</Text>
-              </Pressable>
-            </Pressable>
-          </Pressable>
-        </Modal>
+          onClose={closeDone}
+          totalMinutes={totalMinutes}
+        />
       </View>
     );
   }
@@ -550,11 +344,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: 'rgba(212,175,55,0.25)',
   },
-  doneSheet: {
-    alignItems: 'center',
-    paddingTop: sv(32),
-    gap: sv(12),
-  },
   sheetHandle: {
     width: s(40),
     height: sv(4),
@@ -670,20 +459,6 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     fontSize: sf(15),
     fontWeight: '700',
-  },
-
-  // ── Fertig-Modal ─────────────────────────────────────────────────────────
-  doneTitle: {
-    color: COLORS.paleGold,
-    fontSize: sf(22),
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  doneSub: {
-    color: COLORS.textSecondary,
-    fontSize: sf(14),
-    textAlign: 'center',
-    marginBottom: sv(8),
   },
 
   // ── Aktive Session ───────────────────────────────────────────────────────
