@@ -21,6 +21,7 @@ import { PlannerEventItem } from '../../../features/daily-planner/components/Pla
 import { AddEventModal } from '../../../features/daily-planner/components/AddEventModal';
 import { DeleteEventModal } from '../../../features/daily-planner/components/DeleteEventModal';
 import { PlannerCalendar } from '../../../features/daily-planner/components/PlannerCalendar';
+import { ActivityIndicator } from 'react-native';
 
 export default function DailyPlannerScreen() {
   const today = useRef(new Date()).current;

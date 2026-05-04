@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 
 import {
+  saveDeepWorkSession,
+  clearDeepWorkSession,
+  getSavedDeepWorkSession,
+} from '../services/deepWorkStore';
+
+import {
   DEFAULT_SESSION_MINUTES,
   EXAMPLE_CATEGORIES,
 } from '../utils/deepWorkUtils';
@@ -24,6 +30,22 @@ export function useDeepWorkSession() {
 
   const intervalRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      const saved = await getSavedDeepWorkSession();
+
+      if (!saved) return;
+
+      setPhase(saved.phase || 'paused');
+      setRemaining(saved.remaining || 0);
+      setTotalMinutes(Math.ceil((saved.totalSeconds || saved.remaining || 0) / 60));
+      setTaskName(saved.taskName || 'Deep Work');
+      setCategory(saved.category || 'Fokus');
+    };
+
+    restoreSession();
+  }, []);
 
   useEffect(() => {
     if (phase === 'running') {
@@ -53,6 +75,7 @@ export function useDeepWorkSession() {
         setRemaining(prev => {
           if (prev <= 1) {
             clearInterval(intervalRef.current);
+            clearDeepWorkSession();
             setPhase('idle');
             setDoneVisible(true);
             return 0;
@@ -68,26 +91,50 @@ export function useDeepWorkSession() {
     return () => clearInterval(intervalRef.current);
   }, [phase]);
 
-  const startSession = useCallback(() => {
+  const startSession = useCallback(async () => {
     const mins = selHours * 60 + selMinutes;
     const cat = customCategory.trim() || selCategory;
+    const seconds = mins * 60;
 
     setTaskName(inputTask.trim() || 'Deep Work');
     setCategory(cat);
     setTotalMinutes(mins);
-    setRemaining(mins * 60);
+    setRemaining(seconds);
     setSetupVisible(false);
     setPhase('running');
+
+    await saveDeepWorkSession({
+      phase: 'running',
+      remaining: seconds,
+      totalSeconds: seconds,
+      taskName: inputTask.trim() || 'Deep Work',
+      category: cat,
+      updatedAt: Date.now(),
+    });
   }, [inputTask, selHours, selMinutes, selCategory, customCategory]);
 
   const togglePause = useCallback(() => {
-    setPhase(prev => prev === 'running' ? 'paused' : 'running');
-  }, []);
+    setPhase(prev => {
+      const nextPhase = prev === 'running' ? 'paused' : 'running';
 
-  const endSession = useCallback(() => {
+      saveDeepWorkSession({
+        phase: nextPhase,
+        remaining,
+        totalSeconds: totalMinutes * 60,
+        taskName,
+        category,
+        updatedAt: Date.now(),
+      });
+
+      return nextPhase;
+    });
+  }, [remaining, totalMinutes]);
+
+  const endSession = useCallback(async () => {
     clearInterval(intervalRef.current);
     setPhase('idle');
     setRemaining(0);
+    await clearDeepWorkSession();
   }, []);
 
   const openSetup = useCallback(() => {

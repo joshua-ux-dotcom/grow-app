@@ -11,7 +11,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { useProfile } from '../../../features/profile/hooks/useProfile';
 import { s, sv, sf, SCREEN } from '../../../constants/layout';
 import { getHabitStreak, getTodayHabitProgress } from '../../../features/habits/services/habits';
-import { getDeepWorkTimeLeft } from '../../../features/deep-work/deepWorkStore';
+import { getDeepWorkTimeLeft } from '../../../features/deep-work/services/deepWorkStore'
 import { useSteps } from '../../../features/steps/hooks/useSteps';
 
 // < 900pt (iPhone 15 Pro 852pt, iPhone 16 Pro 874pt): kompakte Abstände

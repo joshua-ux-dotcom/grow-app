@@ -4,6 +4,8 @@ import { Pressable, View } from 'react-native';
  
 import { COLORS } from '../../constants/colors';
 import { s, sv } from '../../constants/layout';
+
+import { getSavedDeepWorkSession } from '../../features/deep-work/services/deepWorkStore';
  
 function TabIcon({ name, color, size, focused }) {
   return (
@@ -46,9 +48,20 @@ function TabIcon({ name, color, size, focused }) {
 }
  
 function CustomTabButton(props) {
+  const handlePress = async (event) => {
+    const session = await getSavedDeepWorkSession();
+
+    if (session?.phase === 'running') {
+      return;
+    }
+
+    props.onPress?.(event);
+  };
+
   return (
     <Pressable
       {...props}
+      onPress={handlePress}
       hitSlop={{ top: 0, bottom: 2, left: 20, right: 20 }}
       style={[props.style, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}
     />

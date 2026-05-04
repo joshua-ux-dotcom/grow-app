@@ -5,7 +5,7 @@ import {
   getEventsForDate,
   addEvent,
   deleteEvent,
-} from '../services/dailyPlanner';
+} from '../services/planner';
 
 import {
   slotToTime,

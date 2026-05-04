@@ -1,8 +1,9 @@
 import {
   View, Text, StyleSheet, Pressable, Modal,
-  TextInput, ScrollView, Animated, KeyboardAvoidingView, Platform
+  TextInput, ScrollView, Animated, KeyboardAvoidingView, Platform,
+  BackHandler,
 } from 'react-native';
-import { router } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/colors';
 import { s, sv, sf } from '../../../constants/layout';
@@ -16,8 +17,12 @@ import {
 import { PickerColumn } from '../../../features/deep-work/components/PickerColumn';
 import { DeepWorkDoneModal } from '../../../features/deep-work/components/DeepWorkDoneModal';
 import { useDeepWorkSession } from '../../../features/deep-work/hooks/useDeepWorkSession';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function DeepWorkScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
   const {
     phase,
     taskName,
@@ -50,189 +55,256 @@ export default function DeepWorkScreen() {
     closeSetup,
     closeDone,
   } = useDeepWorkSession();
-  
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (phase === 'running') {
+          return true; // blockiert zurück
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+
+      return () => subscription.remove();
+    }, [phase])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+
+      if (!parent) return;
+
+      const unsubscribe = parent.addListener('tabPress', (e) => {
+        if (phase === 'running') {
+          e.preventDefault();
+        }
+      });
+
+      return unsubscribe;
+    }, [navigation, phase])
+  );
 
   // ─── Idle-Ansicht ──────────────────────────────────────────────────────────
   if (phase === 'idle') {
     return (
-      <View style={styles.screen}>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={s(24)} color={COLORS.softGold} />
-            <Text style={styles.backText}>Tools</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.idleContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="hourglass-outline" size={s(36)} color={COLORS.gold} />
-            </View>
-            <Text style={styles.title}>DEEP WORK</Text>
-            <Text style={styles.subtitle}>Disziplin. Fokus. Keine Ablenkung.</Text>
+      <>
+        <Stack.Screen options={{ gestureEnabled: true }} />
+        <View style={styles.screen}>
+          <View style={styles.topBar}>
+            <Pressable 
+              onPress={() => {
+                if (phase !== 'running') {
+                  router.back();
+                }
+              }} 
+              style={styles.backButton}
+            >
+              <Ionicons name="chevron-back" size={s(24)} color={COLORS.softGold} />
+              <Text style={styles.backText}>Tools</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={s(18)} color={COLORS.gold} />
-            <Text style={styles.infoText}>
-              Starte eine fokussierte Arbeitseinheit ohne Unterbrechungen.
-            </Text>
-          </View>
-
-          <Pressable style={styles.startButton} onPress={openSetup}>
-            <Ionicons name="play" size={s(20)} color={COLORS.black} />
-            <Text style={styles.startButtonText}>Session starten</Text>
-          </Pressable>
-        </ScrollView>
-
-        {/* ── Setup-Modal ───────────────────────────────────────────────── */}
-        <Modal
-          visible={setupVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={closeSetup}
-        >
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <View style={styles.overlay}>
-              <Pressable style={StyleSheet.absoluteFill} onPress={closeSetup} />
-              <View style={styles.sheet}>
-                <View style={styles.sheetHandle} />
-                <Text style={styles.sheetTitle}>Neue Session</Text>
-
-                {/* Aufgabe */}
-                <Text style={styles.label}>AUFGABE</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Was willst du erreichen?"
-                  placeholderTextColor={COLORS.textDim}
-                  value={inputTask}
-                  onChangeText={setInputTask}
-                  returnKeyType="done"
-                />
-
-                {/* Dauer — Drum-Roll Picker */}
-                <Text style={styles.label}>DAUER</Text>
-                <View style={styles.pickerContainer}>
-                  <PickerColumn
-                    data={HOURS}
-                    initialIndex={0}
-                    onChange={setSelHours}
-                  />
-                  <Text style={styles.pickerSeparator}>h</Text>
-                  <PickerColumn
-                    data={MINUTES}
-                    initialIndex={DEFAULT_SESSION_MINUTES}
-                    onChange={setSelMinutes}
-                  />
-                  <Text style={styles.pickerSeparator}>min</Text>
-                </View>
-
-                {/* Kategorie */}
-                <Text style={styles.label}>KATEGORIE</Text>
-                <View style={styles.chipRow}>
-                  {EXAMPLE_CATEGORIES.map(cat => (
-                    <Pressable
-                      key={cat}
-                      style={[
-                        styles.chip,
-                        selCategory === cat && !customCategory && styles.chipActive,
-                      ]}
-                      onPress={() => {
-                        setSelCategory(cat);
-                        setCustomCategory('');
-                      }}
-                    >
-                      <Text style={[
-                        styles.chipText,
-                        selCategory === cat && !customCategory && styles.chipTextActive,
-                      ]}>
-                        {cat.toUpperCase()}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Eigene Kategorie (optional)"
-                  placeholderTextColor={COLORS.textDim}
-                  value={customCategory}
-                  onChangeText={text => {
-                    setCustomCategory(text);
-                    if (text) setSelCategory('');
-                  }}
-                  returnKeyType="done"
-                />
-
-                {/* Buttons */}
-                <View style={styles.modalButtons}>
-                  <Pressable style={styles.cancelBtn} onPress={() => setSetupVisible(false)}>
-                    <Text style={styles.cancelBtnText}>Abbrechen</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.confirmBtn, !canStart && styles.confirmBtnDisabled]}
-                    onPress={startSession}
-                    disabled={!canStart}
-                  >
-                    <Text style={styles.confirmBtnText}>Starten</Text>
-                  </Pressable>
-                </View>
+          <ScrollView contentContainerStyle={styles.idleContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="hourglass-outline" size={s(36)} color={COLORS.gold} />
               </View>
+              <Text style={styles.title}>DEEP WORK</Text>
+              <Text style={styles.subtitle}>Disziplin. Fokus. Keine Ablenkung.</Text>
             </View>
-          </KeyboardAvoidingView>
-        </Modal>
 
-        {/* ── Fertig-Modal ───────────────────────────────────────────────── */}
-        <DeepWorkDoneModal
-          visible={doneVisible}
-          onClose={closeDone}
-          totalMinutes={totalMinutes}
-        />
-      </View>
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle-outline" size={s(18)} color={COLORS.gold} />
+              <Text style={styles.infoText}>
+                Starte eine fokussierte Arbeitseinheit ohne Unterbrechungen.
+              </Text>
+            </View>
+
+            <Pressable style={styles.startButton} onPress={openSetup}>
+              <Ionicons name="play" size={s(20)} color={COLORS.black} />
+              <Text style={styles.startButtonText}>Session starten</Text>
+            </Pressable>
+          </ScrollView>
+
+          {/* ── Setup-Modal ───────────────────────────────────────────────── */}
+          <Modal
+            visible={setupVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={closeSetup}
+          >
+            <KeyboardAvoidingView
+              style={styles.modalRoot}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+            >
+              <Pressable style={StyleSheet.absoluteFill} onPress={closeSetup} />
+
+              <View style={styles.sheet}>
+                <ScrollView
+                  contentContainerStyle={styles.sheetScrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >    
+                  <View style={styles.sheetHandle} />
+                  <Text style={styles.sheetTitle}>Neue Session</Text>
+
+                  {/* Aufgabe */}
+                  <Text style={styles.label}>AUFGABE</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Was willst du erreichen?"
+                    placeholderTextColor={COLORS.textDim}
+                    value={inputTask}
+                    onChangeText={setInputTask}
+                    returnKeyType="done"
+                  />
+
+                  {/* Dauer — Drum-Roll Picker */}
+                  <Text style={styles.label}>DAUER</Text>
+                  <View style={styles.pickerContainer}>
+                    <PickerColumn
+                      data={HOURS}
+                      initialIndex={0}
+                      onChange={setSelHours}
+                    />
+                    <Text style={styles.pickerSeparator}>h</Text>
+                    <PickerColumn
+                      data={MINUTES}
+                      initialIndex={DEFAULT_SESSION_MINUTES}
+                      onChange={setSelMinutes}
+                    />
+                    <Text style={styles.pickerSeparator}>min</Text>
+                  </View>
+
+                  {/* Kategorie */}
+                  <Text style={styles.label}>KATEGORIE</Text>
+                  <View style={styles.chipRow}>
+                    {EXAMPLE_CATEGORIES.map(cat => (
+                      <Pressable
+                        key={cat}
+                        style={[
+                          styles.chip,
+                          selCategory === cat && !customCategory && styles.chipActive,
+                        ]}
+                        onPress={() => {
+                          setSelCategory(cat);
+                          setCustomCategory('');
+                        }}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          selCategory === cat && !customCategory && styles.chipTextActive,
+                        ]}>
+                          {cat.toUpperCase()}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Eigene Kategorie (optional)"
+                    placeholderTextColor={COLORS.textDim}
+                    value={customCategory}
+                    onChangeText={text => {
+                      setCustomCategory(text);
+                      if (text) setSelCategory('');
+                    }}
+                    returnKeyType="done"
+                  />
+
+                  {/* Buttons */}
+                  <View style={styles.modalButtons}>
+                    <Pressable style={styles.cancelBtn} onPress={closeSetup}>
+                      <Text style={styles.cancelBtnText}>Abbrechen</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.confirmBtn, !canStart && styles.confirmBtnDisabled]}
+                      onPress={startSession}
+                      disabled={!canStart}
+                    >
+                      <Text style={styles.confirmBtnText}>Starten</Text>
+                    </Pressable>
+                  </View>
+                </ScrollView>  
+              </View>
+            </KeyboardAvoidingView>            
+          </Modal>
+
+          {/* ── Fertig-Modal ───────────────────────────────────────────────── */}
+          <DeepWorkDoneModal
+            visible={doneVisible}
+            onClose={closeDone}
+            totalMinutes={totalMinutes}
+          />
+        </View>
+      </>  
     );
   }
 
   // ─── Aktive Session ────────────────────────────────────────────────────────
   return (
-    <View style={styles.screen}>
-      <View style={styles.sessionHeader}>
-        <Ionicons name="hourglass" size={s(42)} color={COLORS.gold} />
-        <Text style={styles.title}>DEEP WORK</Text>
-        <Text style={styles.subtitle}>Disziplin. Fokus. Keine Ablenkung.</Text>
-      </View>
+    <>
+      <Stack.Screen options={{ gestureEnabled: phase !== 'running' }} />
+      <View style={styles.screen}>
+        <Pressable
+          onPress={() => {
+            if (phase !== 'running') {
+              router.back();
+            }
+          }}
+          style={[
+            styles.sessionBackButton,
+            phase === 'running' && styles.sessionBackButtonHidden,
+          ]}
+          disabled={phase === 'running'}
+        >  
+          <Ionicons name="chevron-back" size={s(24)} color={COLORS.softGold} />
+          <Text style={styles.backText}>Tools</Text>
+        </Pressable>
+        <View style={styles.sessionHeader}>
+          <Ionicons name="hourglass" size={s(42)} color={COLORS.gold} />
+          <Text style={styles.title}>DEEP WORK</Text>
+          <Text style={styles.subtitle}>Disziplin. Fokus. Keine Ablenkung.</Text>
+        </View>
 
-      <View style={styles.timerBlock}>
-        <Text style={styles.timerText}>{formatTime(remaining)}</Text>
-        <Text style={styles.taskName}>{taskName}</Text>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{category.toUpperCase()}</Text>
+        <View style={styles.timerBlock}>
+          <Text style={styles.timerText}>{formatTime(remaining)}</Text>
+          <Text style={styles.taskName}>{taskName}</Text>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>{category.toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </View>
+
+        <View style={styles.controlArea}>
+          <Animated.View style={[styles.pauseRingOuter, { transform: [{ scale: pulseAnim }] }]}>
+            <Pressable style={styles.pauseButton} onPress={togglePause}>
+              <Ionicons
+                name={phase === 'running' ? 'pause' : 'play'}
+                size={s(38)}
+                color={COLORS.gold}
+              />
+            </Pressable>
+          </Animated.View>
+        </View>
+
+        <View style={styles.bottomArea}>
+          <Pressable style={styles.endButton} onPress={endSession}>
+            <Text style={styles.endButtonText}>Session beenden</Text>
+          </Pressable>
         </View>
       </View>
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-      </View>
-
-      <View style={styles.controlArea}>
-        <Animated.View style={[styles.pauseRingOuter, { transform: [{ scale: pulseAnim }] }]}>
-          <Pressable style={styles.pauseButton} onPress={togglePause}>
-            <Ionicons
-              name={phase === 'running' ? 'pause' : 'play'}
-              size={s(38)}
-              color={COLORS.gold}
-            />
-          </Pressable>
-        </Animated.View>
-      </View>
-
-      <View style={styles.bottomArea}>
-        <Pressable style={styles.endButton} onPress={endSession}>
-          <Text style={styles.endButtonText}>Session beenden</Text>
-        </Pressable>
-      </View>
-    </View>
+    </>  
   );
 }
 
@@ -329,10 +401,13 @@ const styles = StyleSheet.create({
   },
 
   // ── Setup-Modal ──────────────────────────────────────────────────────────
-  overlay: {
+  modalRoot: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+  },
+  sheetScrollContent: {
+    paddingBottom: sv(10),
   },
   sheet: {
     backgroundColor: COLORS.darkCard,
@@ -340,7 +415,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: s(24),
     paddingHorizontal: s(20),
     paddingTop: sv(12),
-    paddingBottom: sv(44),
+    paddingBottom: sv(10),
     borderTopWidth: 1,
     borderColor: 'rgba(212,175,55,0.25)',
   },
@@ -467,6 +542,18 @@ const styles = StyleSheet.create({
     paddingTop: sv(80),
     gap: sv(8),
     paddingBottom: sv(8),
+  },
+  sessionBackButton: {
+    position: 'absolute',
+    top: sv(54),
+    left: s(16),
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(4),
+  },
+  sessionBackButtonHidden: {
+    opacity: 0,
   },
   timerBlock: {
     alignItems: 'center',

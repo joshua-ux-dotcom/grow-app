@@ -15,6 +15,7 @@ import {
 import { useHabits } from '../../../features/habits/hooks/useHabits';
 import { HabitItem } from '../../../features/habits/components/HabitItem';
 import { AddHabitModal } from '../../../features/habits/components/AddHabitModal';
+import { ActivityIndicator } from 'react-native';
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 

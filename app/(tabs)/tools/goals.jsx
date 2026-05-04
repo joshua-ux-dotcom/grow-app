@@ -8,6 +8,7 @@ import { GOAL_CATEGORIES } from '../../../features/goals/utils/goalUtils';
 import { useGoals } from '../../../features/goals/hooks/useGoals';
 import { GoalItem } from '../../../features/goals/components/GoalItem';
 import { AddGoalModal } from '../../../features/goals/components/AddGoalModal';
+import { ActivityIndicator } from 'react-native';
 
 export default function GoalsScreen() {
   const [selectedCategory, setSelectedCategory] = useState(0);
