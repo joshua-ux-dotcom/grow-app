@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../constants/colors';
-import { s, sv, sf, SCREEN } from '../../constants/layout';
+import { COLORS } from '../../../../constants/colors';
+import { s, sv, sf, SCREEN } from '../../../../constants/layout';
 
 const compact    = SCREEN.height < 900;
 const veryCompact = SCREEN.height < 700;

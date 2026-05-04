@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../constants/colors';
-import { s, sv, sf } from '../../constants/layout'
+import { COLORS } from '../../../../constants/colors';
+import { s, sv, sf } from '../../../../constants/layout'
  
 export default function TrackerBox({ value, label }) {
   return (
