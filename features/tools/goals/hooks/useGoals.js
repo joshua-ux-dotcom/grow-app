@@ -78,6 +78,7 @@ export function useGoals(selectedCategory) {
     loading,
     loadError,
     actionError,
+    setActionError,
     completedCount,
     total,
     progress,
