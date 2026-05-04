@@ -14,6 +14,8 @@
       "bundleIdentifier": "app.joingrow.grow",
       "buildNumber": "9",
       "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Grow benötigt Zugriff auf deine Fotos, damit du Feedback-Bilder anhängen kannst.",
+        "NSMotionUsageDescription": "Grow nutzt Bewegungsdaten, um deine Schritte im Active Tracker anzuzeigen.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

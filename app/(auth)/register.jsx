@@ -29,7 +29,7 @@ export default function RegisterScreen() {
     setErrorText('');
  
     const cleanUsername = username.trim().toLowerCase();
-    const cleanCode = code.trim();
+    const cleanCode = code.trim().toUpperCase();
  
     if (!cleanUsername || !password || !password2 || !cleanCode) {
       setErrorText('Bitte alle Felder ausfüllen.');
