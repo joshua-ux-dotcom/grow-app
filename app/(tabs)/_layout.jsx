@@ -5,8 +5,8 @@ import { Pressable, View } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { s, sv } from '../../constants/layout';
 
-import { getSavedDeepWorkSession } from '../../features/deep-work/services/deepWorkStore';
- 
+import { getSavedDeepWorkSession } from '../../features/tools/deep-work/services/deepWorkStore'
+
 function TabIcon({ name, color, size, focused }) {
   return (
     <View

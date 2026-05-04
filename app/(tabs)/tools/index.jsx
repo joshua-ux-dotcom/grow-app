@@ -10,8 +10,8 @@ import { COLORS } from '../../../constants/colors';
 import { supabase } from '../../../services/supabaseClient';
 import { useProfile } from '../../../features/profile/hooks/useProfile';
 import { s, sv, sf, SCREEN } from '../../../constants/layout';
-import { getHabitStreak, getTodayHabitProgress } from '../../../features/habits/services/habits';
-import { getDeepWorkTimeLeft } from '../../../features/deep-work/services/deepWorkStore'
+import { getHabitStreak, getTodayHabitProgress } from '../../../features/tools/habits/services/habits';
+import { getDeepWorkTimeLeft } from '../../../features/tools/deep-work/services/deepWorkStore.js'
 import { useSteps } from '../../../features/steps/hooks/useSteps';
 
 // < 900pt (iPhone 15 Pro 852pt, iPhone 16 Pro 874pt): kompakte Abstände
