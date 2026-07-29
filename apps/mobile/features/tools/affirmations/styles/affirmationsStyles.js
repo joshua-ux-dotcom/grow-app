@@ -96,15 +96,6 @@ export const styles = StyleSheet.create({
     padding: s(17),
     marginBottom: sv(22),
   },
-  heroGlow: {
-    position: 'absolute',
-    top: -sv(44),
-    right: -s(45),
-    width: s(150),
-    height: s(150),
-    borderRadius: s(75),
-    backgroundColor: 'rgba(231,201,138,0.13)',
-  },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

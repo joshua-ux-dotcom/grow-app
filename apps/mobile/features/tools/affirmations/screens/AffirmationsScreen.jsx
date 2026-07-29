@@ -240,8 +240,6 @@ export default function AffirmationsScreen() {
         </View>
 
         <View style={styles.heroCard}>
-          <View style={styles.heroGlow} />
-
           <View style={styles.heroTopRow}>
             <View>
               <Text style={styles.heroLabel}>Heute wiederholt</Text>
