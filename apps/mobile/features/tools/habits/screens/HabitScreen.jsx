@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   ImageBackground,
+  LayoutAnimation,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import {
   DAYS,
   getTodayIndex,
   getAllDayIndexes,
+  groupHabitOverviewItems,
 } from '../utils/habitUtils';
 
 import { useHabits } from '../hooks/useHabits';
@@ -105,6 +107,15 @@ export default function HabitsScreen() {
         progress_total: c.members.length,
       }));
   }, [collections, selectedDay, completedIds]);
+
+  const overviewGroups = useMemo(
+    () => groupHabitOverviewItems(
+      visibleFreeHabits,
+      visibleDueCollections,
+      completedIds
+    ),
+    [visibleFreeHabits, visibleDueCollections, completedIds]
+  );
 
   const visualProgress = useMemo(() => {
     const completedHabits = visibleFreeHabits.filter(habit => completedIds.has(habit.id)).length;
@@ -200,6 +211,11 @@ export default function HabitsScreen() {
     router.push(habit.linked_tool_route);
   }, []);
 
+  const handleToggleHabit = useCallback((habitId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    toggle(habitId);
+  }, [toggle]);
+
   const handleOpenCollections = useCallback(() => {
     router.push('/tools/habits-collections');
   }, []);
@@ -282,7 +298,7 @@ export default function HabitsScreen() {
           />
         ) : !loading ? (
           <View style={styles.list}>
-            {visibleDueCollections.map((collection) => (
+            {overviewGroups.openCollections.map((collection) => (
               <HabitCollectionItem
                 key={collection.id}
                 collection={collection}
@@ -296,13 +312,39 @@ export default function HabitsScreen() {
                 }}
               />
             ))}
-            {visibleFreeHabits.map((habit) => (
+            {overviewGroups.openHabits.map((habit) => (
               <HabitItem
                 key={habit.id}
                 habit={habit}
                 selectedDay={selectedDay}
                 done={completedIds.has(habit.id)}
-                onToggle={toggle}
+                onToggle={handleToggleHabit}
+                onDelete={remove}
+                onEdit={openEditModal}
+                onOpenLinkedTool={handleOpenLinkedTool}
+              />
+            ))}
+            {overviewGroups.completedCollections.map((collection) => (
+              <HabitCollectionItem
+                key={collection.id}
+                collection={collection}
+                completedCount={collection.progress_completed}
+                total={collection.progress_total}
+                onPress={() => {
+                  router.push({
+                    pathname: '/tools/habits-collection-detail',
+                    params: { collectionId: collection.id },
+                  });
+                }}
+              />
+            ))}
+            {overviewGroups.completedHabits.map((habit) => (
+              <HabitItem
+                key={habit.id}
+                habit={habit}
+                selectedDay={selectedDay}
+                done={completedIds.has(habit.id)}
+                onToggle={handleToggleHabit}
                 onDelete={remove}
                 onEdit={openEditModal}
                 onOpenLinkedTool={handleOpenLinkedTool}

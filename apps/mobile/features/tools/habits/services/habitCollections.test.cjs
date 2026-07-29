@@ -292,7 +292,9 @@ test('collection detail keeps today completion state and the existing toggle wor
 
   assert.match(detailSource, /const selectedDay = getTodayIndex\(\)/);
   assert.match(detailSource, /done=\{allCompletedIds\.has\(habit\.id\)\}/);
-  assert.match(detailSource, /onToggle=\{toggle\}/);
+  assert.match(detailSource, /partitionHabitsByCompletion\(memberHabits, allCompletedIds\)/);
+  assert.match(detailSource, /LayoutAnimation\.configureNext\(LayoutAnimation\.Presets\.easeInEaseOut\)[\s\S]*?toggle\(habitId\)/);
+  assert.match(detailSource, /onToggle=\{handleToggleMember\}/);
   assert.doesNotMatch(detailSource, /toggleCompletion|supabase\.(?:from|rpc)/);
 });
 

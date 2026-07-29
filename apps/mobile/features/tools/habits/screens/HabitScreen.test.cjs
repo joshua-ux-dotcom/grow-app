@@ -23,9 +23,23 @@ test('HabitScreen.jsx calculates progress', () => {
 });
 
 test('HabitScreen.jsx renders collections and habits', () => {
-  assert.match(source, /visibleDueCollections\.map/);
+  assert.match(source, /overviewGroups\.openCollections\.map/);
+  assert.match(source, /overviewGroups\.openHabits\.map/);
+  assert.match(source, /overviewGroups\.completedCollections\.map/);
+  assert.match(source, /overviewGroups\.completedHabits\.map/);
   assert.match(source, /HabitCollectionItem/);
   assert.match(source, /HabitItem/);
+});
+
+test('HabitScreen.jsx renders the four overview groups in the required order', () => {
+  const openCollections = source.indexOf('overviewGroups.openCollections.map');
+  const openHabits = source.indexOf('overviewGroups.openHabits.map');
+  const completedCollections = source.indexOf('overviewGroups.completedCollections.map');
+  const completedHabits = source.indexOf('overviewGroups.completedHabits.map');
+
+  assert.ok(openCollections < openHabits);
+  assert.ok(openHabits < completedCollections);
+  assert.ok(completedCollections < completedHabits);
 });
 
 test('HabitScreen.jsx provides collection management', () => {

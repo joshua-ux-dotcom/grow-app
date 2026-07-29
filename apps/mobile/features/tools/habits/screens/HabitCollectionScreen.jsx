@@ -6,13 +6,14 @@ import {
   Pressable,
   FlatList,
   ImageBackground,
+  LayoutAnimation,
 } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../../../constants/colors';
 import { s, sv, sf } from '../../../../constants/layout';
-import { DAYS, getTodayIndex } from '../utils/habitUtils';
+import { DAYS, getTodayIndex, partitionHabitsByCompletion } from '../utils/habitUtils';
 import { useHabitCollection } from '../hooks/useHabitCollection';
 import { useHabits } from '../hooks/useHabits';
 import { HabitItem } from '../components/HabitItem';
@@ -55,6 +56,11 @@ export default function HabitCollectionScreen() {
       .filter(Boolean);
   }, [collection, habits]);
 
+  const orderedMemberHabits = useMemo(
+    () => partitionHabitsByCompletion(memberHabits, allCompletedIds),
+    [memberHabits, allCompletedIds]
+  );
+
   const progress = useMemo(() => {
     const total = memberHabits.length;
     if (total === 0) return { completed: 0, total: 0, percentage: 0 };
@@ -77,6 +83,11 @@ export default function HabitCollectionScreen() {
   const handleBack = useCallback(() => {
     router.back();
   }, []);
+
+  const handleToggleMember = useCallback((habitId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    toggle(habitId);
+  }, [toggle]);
 
   return (
     <ImageBackground
@@ -141,7 +152,7 @@ export default function HabitCollectionScreen() {
             ) : (
               <FlatList
                 scrollEnabled={false}
-                data={memberHabits}
+                data={orderedMemberHabits}
                 contentContainerStyle={habitStyles.list}
                 keyExtractor={h => h.id}
                 renderItem={({ item: habit }) => (
@@ -149,7 +160,7 @@ export default function HabitCollectionScreen() {
                     habit={habit}
                     selectedDay={selectedDay}
                     done={allCompletedIds.has(habit.id)}
-                    onToggle={toggle}
+                    onToggle={handleToggleMember}
                     showActions={false}
                     onOpenLinkedTool={() => {
                       if (habit.linked_tool_route) {
