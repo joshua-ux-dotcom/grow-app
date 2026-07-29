@@ -5,9 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
 import { SCREEN, sv } from '../../../constants/layout';
 
-const TOUCH_ZONE_HEIGHT = 120;
+const TOUCH_ZONE_HEIGHT = 128;
 const TOUCH_ZONE_BELOW_LINE = 28;
-const THUMB_SIZE = 12;
 const ACTIVE_TRACK_HEIGHT = 5;
 
 function getVisibleTabBarHeight(screenHeight) {
@@ -65,8 +64,6 @@ function getAndroidProgressLift(screenHeight) {
 
 export default function FeedProgressBar({
   safeProgress,
-  canScrub,
-  thumbLeft,
   onTrackLayout,
   panHandlers,
   isScrubbing = false,
@@ -79,13 +76,6 @@ export default function FeedProgressBar({
   const visibleTabBarHeight = getVisibleTabBarHeight(height);
   const progressLineGapAboveTab = 0;
   const androidProgressLift = getAndroidProgressLift(height);
-  const androidMidDeviceLift = SCREEN.isAndroid ? getAndroidMidDeviceLift(height) : 0;
-  const progressThumbTop =
-    TOUCH_ZONE_HEIGHT -
-    TOUCH_ZONE_BELOW_LINE -
-    THUMB_SIZE / 2 -
-    ACTIVE_TRACK_HEIGHT / 2 -
-    androidMidDeviceLift;
 
   const progressLineBottom =
     insets.bottom +
@@ -134,13 +124,6 @@ export default function FeedProgressBar({
               ]}
             />
           </View>
-
-          {canScrub && isScrubbing && (
-            <View
-              pointerEvents="none"
-              style={[styles.progressThumb, { left: thumbLeft, top: progressThumbTop }]}
-            />
-          )}
         </View>
       </View>
     </View>
@@ -182,22 +165,6 @@ const styles = StyleSheet.create({
 
   progressFillActive: {
     backgroundColor: COLORS.white,
-  },
-
-  progressThumb: {
-    position: 'absolute',
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: THUMB_SIZE / 2,
-    backgroundColor: COLORS.white,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    elevation: 4,
   },
 
   timeContainer: {
