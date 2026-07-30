@@ -96,13 +96,17 @@ export default function TabsLayout() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
-  // Preserve the already-tested Pixel layout exactly. Only Samsung devices
-  // with a large bottom system-navigation inset (e.g. 3-button navigation)
-  // lift the custom tab bar above that system area.
+  const hasLargeAndroidNavigationInset =
+    Platform.OS === 'android' && insets.bottom > SAMSUNG_LARGE_NAV_INSET_THRESHOLD;
+
+  // Preserve the tested Samsung handling while giving other Android devices
+  // with a large system-navigation inset only a minimal visual lift.
   const tabBarBottom =
-    IS_SAMSUNG_ANDROID && insets.bottom > SAMSUNG_LARGE_NAV_INSET_THRESHOLD
+    IS_SAMSUNG_ANDROID && hasLargeAndroidNavigationInset
       ? insets.bottom
-      : 1;
+      : hasLargeAndroidNavigationInset
+        ? sv(6)
+        : 1;
 
   return (
     <Tabs
