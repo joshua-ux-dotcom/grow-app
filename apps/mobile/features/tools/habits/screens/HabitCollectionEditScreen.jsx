@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../../../constants/colors';
@@ -24,9 +25,16 @@ import ToolStateCard from '../../../../components/ui/ToolStateCard';
 import { useDelayedLoading } from '../../../../hooks/useDelayedLoading';
 import { styles as habitStyles } from '../styles/habitStyles';
 import { HABITS_PAGE_BG } from '../../../../constants/toolAssets';
+import { useHabitCollectionDraft } from '../hooks/useHabitCollectionDraft';
+import {
+  createHabitCollectionBaseline,
+  dismissHabitCollectionEditToDetail,
+  dismissHabitCollectionsToOverview,
+} from '../services/habitCollectionDrafts';
 
 export default function HabitCollectionEditScreen() {
   const { collectionId } = useLocalSearchParams();
+  const navigation = useNavigation();
   const {
     collection,
     loading: collectionLoading,
@@ -40,6 +48,7 @@ export default function HabitCollectionEditScreen() {
   } = useHabits(getTodayIndex());
 
   const {
+    ownerUserId,
     collections,
     loading: collectionsLoading,
     update: updateCollection,
@@ -59,29 +68,90 @@ export default function HabitCollectionEditScreen() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const saveHandlerRef = useRef(null);
+  const submitInProgressRef = useRef(false);
+  const handleAlertSave = useCallback(
+    action => saveHandlerRef.current?.({ backAction: action }) ?? false,
+    []
+  );
 
-  const showCollectionLoading = useDelayedLoading(collectionLoading);
+  const eligibleHabitIds = useMemo(() => {
+    const safeCollections = Array.isArray(collections) ? collections : [];
+    const safeHabits = Array.isArray(habits) ? habits : [];
+    const assignedElsewhere = new Set(safeCollections
+      .filter(item => item.id !== collection?.id)
+      .flatMap(item => (Array.isArray(item?.members) ? item.members : [])
+        .map(member => member.habit_id)));
+    return new Set(
+      safeHabits
+        .filter(habit => !assignedElsewhere.has(habit.id))
+        .map(habit => habit.id)
+    );
+  }, [habits, collections, collection?.id]);
+
+  const baseline = useMemo(() => {
+    if (!collection) return null;
+    const collectionDays = Array.isArray(collection.days) ? collection.days : [];
+    const collectionMembers = Array.isArray(collection.members) ? collection.members : [];
+    return createHabitCollectionBaseline({
+      ...collection,
+      days: collectionDays,
+      members: collectionMembers,
+    });
+  }, [collection?.id, collection?.version]);
+  const snapshot = useMemo(() => ({
+    name: collectionName,
+    days: Array.from(selectedDays),
+    selectedHabitIds: Array.from(selectedHabitIds),
+    newHabits,
+    memberOrder,
+    newHabitName,
+  }), [
+    collectionName,
+    selectedDays,
+    selectedHabitIds,
+    newHabits,
+    memberOrder,
+    newHabitName,
+  ]);
+  const applyDraftSnapshot = useCallback((draft) => {
+    setCollectionName(draft.name);
+    setSelectedDays(new Set(draft.days));
+    setAllDays(draft.days.length === 7);
+    setSelectedHabitIds(new Set(draft.selectedHabitIds));
+    setNewHabits(draft.newHabits);
+    setMemberOrder(draft.memberOrder);
+    setNewHabitName(draft.newHabitName);
+  }, []);
+  const {
+    beginMutation,
+    completeMutation,
+    isHydrated: draftHydrated,
+    isHydrating: draftHydrating,
+    hydrationFailed: draftHydrationFailed,
+    retryHydration,
+  } = useHabitCollectionDraft({
+    userId: ownerUserId,
+    mode: 'edit',
+    collectionId: typeof collectionId === 'string' ? collectionId : null,
+    baseline,
+    snapshot,
+    applySnapshot: applyDraftSnapshot,
+    eligibleHabitIds,
+    hydrationReady: Boolean(
+      ownerUserId
+      && collection
+      && !collectionLoading
+      && !habitsLoading
+      && !collectionsLoading
+    ),
+    onSave: handleAlertSave,
+  });
+
+  const showCollectionLoading = useDelayedLoading(
+    collectionLoading || Boolean(collection && draftHydrating)
+  );
   const showHabitsLoading = useDelayedLoading(habitsLoading || collectionsLoading);
-
-  useEffect(() => {
-    if (collection) {
-      const collectionDays = Array.isArray(collection.days) ? collection.days : [];
-      const collectionMembers = Array.isArray(collection.members) ? collection.members : [];
-      setCollectionName(collection.name);
-      setSelectedDays(new Set(collectionDays));
-      setAllDays(collectionDays.length === 7);
-
-      const memberIds = new Set();
-      const order = [];
-      collectionMembers.forEach(m => {
-        memberIds.add(m.habit_id);
-        order.push(m.habit_id);
-      });
-      setSelectedHabitIds(memberIds);
-      setMemberOrder(order);
-      setError(null);
-    }
-  }, [collection]);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,14 +160,11 @@ export default function HabitCollectionEditScreen() {
   );
 
   const availableHabits = useMemo(() => {
-    const safeCollections = Array.isArray(collections) ? collections : [];
     const safeHabits = Array.isArray(habits) ? habits : [];
-    const assignedElsewhere = new Set(safeCollections
-      .filter(item => item.id !== collection?.id)
-      .flatMap(item => (Array.isArray(item?.members) ? item.members : [])
-        .map(member => member.habit_id)));
-    return safeHabits.filter(h => !assignedElsewhere.has(h.id) && !selectedHabitIds.has(h.id));
-  }, [habits, collections, collection?.id, selectedHabitIds]);
+    return safeHabits.filter(habit => (
+      eligibleHabitIds.has(habit.id) && !selectedHabitIds.has(habit.id)
+    ));
+  }, [habits, eligibleHabitIds, selectedHabitIds]);
 
   const canAddNewHabit = newHabitName.trim().length > 0;
 
@@ -173,25 +240,27 @@ export default function HabitCollectionEditScreen() {
     });
   }, []);
 
-  const handleUpdate = useCallback(async () => {
-    if (!collection) return;
+  const handleUpdate = useCallback(async ({ backAction = null } = {}) => {
+    if (submitInProgressRef.current) return false;
+    if (!collection) return false;
 
     const safeName = collectionName.trim();
     if (!safeName || safeName.length > 60) {
       setError('Name muss zwischen 1 und 60 Zeichen lang sein.');
-      return;
+      return false;
     }
     if (selectedDays.size === 0) {
       setError('Mindestens ein Wochentag ist erforderlich.');
-      return;
+      return false;
     }
 
     const selectedCount = selectedHabitIds.size + newHabits.length;
     if (selectedCount === 0) {
       setError('Mindestens eine Gewohnheit ist erforderlich.');
-      return;
+      return false;
     }
 
+    submitInProgressRef.current = true;
     setError(null);
     setSaving(true);
 
@@ -206,6 +275,7 @@ export default function HabitCollectionEditScreen() {
         }
       }
 
+      const mutationTicket = beginMutation();
       const updated = await updateCollection(
         collection.id,
         safeName,
@@ -215,10 +285,21 @@ export default function HabitCollectionEditScreen() {
       );
       if (!updated) throw new Error('Sammlung konnte nicht aktualisiert werden.');
 
-      router.replace({
-        pathname: '/tools/habits-collection-detail',
-        params: { collectionId: collection.id },
-      });
+      return completeMutation(
+        mutationTicket,
+        backAction?.type
+          ? { type: 'back-save', action: backAction }
+          : {
+            type: 'bottom-save',
+            navigate: () => {
+              dismissHabitCollectionEditToDetail({
+                router,
+                navigationState: navigation.getState(),
+                collectionId: collection.id,
+              });
+            },
+          }
+      );
     } catch (e) {
       if (e.code === 'HABIT_COLLECTION_CONFLICT') {
         setError('Diese Sammlung wurde zwischenzeitlich geändert. Bitte lade die Seite neu.');
@@ -226,10 +307,25 @@ export default function HabitCollectionEditScreen() {
       } else {
         setError('Sammlung konnte nicht aktualisiert werden.');
       }
+      return false;
     } finally {
+      submitInProgressRef.current = false;
       setSaving(false);
     }
-  }, [collection, collectionName, selectedDays, selectedHabitIds, newHabits, memberOrder, updateCollection, loadCollection]);
+  }, [
+    collection,
+    collectionName,
+    selectedDays,
+    selectedHabitIds,
+    newHabits,
+    memberOrder,
+    updateCollection,
+    loadCollection,
+    navigation,
+    beginMutation,
+    completeMutation,
+  ]);
+  saveHandlerRef.current = handleUpdate;
 
   const handleDelete = useCallback(() => {
     if (!collection) return;
@@ -244,8 +340,18 @@ export default function HabitCollectionEditScreen() {
           onPress: async () => {
             setDeleting(true);
             try {
-              await removeCollection(collection.id, collection.version);
-              router.replace('/tools/habits');
+              const mutationTicket = beginMutation();
+              const removed = await removeCollection(collection.id, collection.version);
+              if (removed !== true) {
+                throw new Error('Sammlung konnte nicht gelöscht werden.');
+              }
+              completeMutation(
+                mutationTicket,
+                {
+                  type: 'bottom-save',
+                  navigate: () => dismissHabitCollectionsToOverview(router),
+                }
+              );
             } catch (_error) {
               setError('Sammlung konnte nicht gelöscht werden.');
               setDeleting(false);
@@ -254,7 +360,7 @@ export default function HabitCollectionEditScreen() {
         },
       ]
     );
-  }, [collection, removeCollection]);
+  }, [collection, removeCollection, beginMutation, completeMutation]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -270,6 +376,7 @@ export default function HabitCollectionEditScreen() {
     .filter(Boolean);
 
   const canUpdate =
+    draftHydrated &&
     collection &&
     collectionName.trim().length > 0 &&
     collectionName.trim().length <= 60 &&
@@ -324,6 +431,15 @@ export default function HabitCollectionEditScreen() {
               icon="alert-circle-outline"
               title="Sammlung nicht verfügbar"
               subtitle={loadError}
+            />
+          ) : draftHydrationFailed ? (
+            <ToolStateCard
+              icon="alert-circle-outline"
+              title="Entwurf konnte nicht geladen werden"
+              subtitle="Bitte versuche es erneut."
+              actionLabel="Erneut versuchen"
+              onAction={retryHydration}
+              tone="error"
             />
           ) : collection ? (
             <>

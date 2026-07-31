@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,11 @@ import ToolStateCard from '../../../../components/ui/ToolStateCard';
 import { useDelayedLoading } from '../../../../hooks/useDelayedLoading';
 import { styles as habitStyles } from '../styles/habitStyles';
 import { HABITS_PAGE_BG } from '../../../../constants/toolAssets';
+import { useHabitCollectionDraft } from '../hooks/useHabitCollectionDraft';
+import {
+  createEmptyHabitCollectionSnapshot,
+  dismissHabitCollectionsToOverview,
+} from '../services/habitCollectionDrafts';
 
 export default function HabitCollectionCreateScreen() {
   const {
@@ -31,6 +36,7 @@ export default function HabitCollectionCreateScreen() {
   } = useHabits(getTodayIndex());
 
   const {
+    ownerUserId,
     collections,
     loading: collectionsLoading,
     add: addCollection,
@@ -47,8 +53,72 @@ export default function HabitCollectionCreateScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [memberOrder, setMemberOrder] = useState([]);
+  const saveHandlerRef = useRef(null);
+  const submitInProgressRef = useRef(false);
+  const handleAlertSave = useCallback(
+    action => saveHandlerRef.current?.({ backAction: action }) ?? false,
+    []
+  );
 
-  const showLoading = useDelayedLoading(habitsLoading || collectionsLoading);
+  const eligibleHabitIds = useMemo(() => {
+    const assignedIds = new Set(collections.flatMap(collection => (
+      collection.members.map(member => member.habit_id)
+    )));
+    return new Set(habits.filter(habit => !assignedIds.has(habit.id)).map(habit => habit.id));
+  }, [habits, collections]);
+
+  const baseline = useMemo(() => createEmptyHabitCollectionSnapshot(), []);
+  const snapshot = useMemo(() => ({
+    name: collectionName,
+    days: Array.from(selectedDays),
+    selectedHabitIds: Array.from(selectedHabitIds),
+    newHabits,
+    memberOrder,
+    newHabitName,
+  }), [
+    collectionName,
+    selectedDays,
+    selectedHabitIds,
+    newHabits,
+    memberOrder,
+    newHabitName,
+  ]);
+  const applyDraftSnapshot = useCallback((draft) => {
+    setCollectionName(draft.name);
+    setSelectedDays(new Set(draft.days));
+    setAllDays(draft.days.length === 7);
+    setSelectedHabitIds(new Set(draft.selectedHabitIds));
+    setNewHabits(draft.newHabits);
+    setMemberOrder(draft.memberOrder);
+    setNewHabitName(draft.newHabitName);
+  }, []);
+  const {
+    beginMutation,
+    completeMutation,
+    isHydrated: draftHydrated,
+    isHydrating: draftHydrating,
+    hydrationFailed: draftHydrationFailed,
+    retryHydration,
+  } = useHabitCollectionDraft({
+    userId: ownerUserId,
+    mode: 'create',
+    baseline,
+    snapshot,
+    applySnapshot: applyDraftSnapshot,
+    eligibleHabitIds,
+    hydrationReady: Boolean(
+      ownerUserId
+      && !habitsLoading
+      && !collectionsLoading
+    ),
+    onSave: handleAlertSave,
+  });
+
+  const showLoading = useDelayedLoading(
+    habitsLoading
+    || collectionsLoading
+    || Boolean(ownerUserId && draftHydrating)
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -56,12 +126,12 @@ export default function HabitCollectionCreateScreen() {
     }, [setCollectionError])
   );
 
-  const availableHabits = useMemo(() => {
-    const assignedIds = new Set(collections.flatMap(collection => (
-      collection.members.map(member => member.habit_id)
-    )));
-    return habits.filter(h => !assignedIds.has(h.id) && !selectedHabitIds.has(h.id));
-  }, [habits, collections, selectedHabitIds]);
+  const availableHabits = useMemo(
+    () => habits.filter(habit => (
+      eligibleHabitIds.has(habit.id) && !selectedHabitIds.has(habit.id)
+    )),
+    [habits, eligibleHabitIds, selectedHabitIds]
+  );
 
   const canAddNewHabit = newHabitName.trim().length > 0;
 
@@ -139,23 +209,26 @@ export default function HabitCollectionCreateScreen() {
     });
   }, []);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async ({ backAction = null } = {}) => {
+    if (submitInProgressRef.current) return false;
+
     const safeName = collectionName.trim();
     if (!safeName || safeName.length > 60) {
       setError('Name muss zwischen 1 und 60 Zeichen lang sein.');
-      return;
+      return false;
     }
     if (selectedDays.size === 0) {
       setError('Mindestens ein Wochentag ist erforderlich.');
-      return;
+      return false;
     }
 
     const selectedCount = selectedHabitIds.size + newHabits.length;
     if (selectedCount === 0) {
       setError('Mindestens eine Gewohnheit ist erforderlich.');
-      return;
+      return false;
     }
 
+    submitInProgressRef.current = true;
     setError(null);
     setSaving(true);
 
@@ -173,17 +246,39 @@ export default function HabitCollectionCreateScreen() {
         }
       }
 
+      const mutationTicket = beginMutation();
       const created = await addCollection(safeName, Array.from(selectedDays), members);
       if (!created) throw new Error('Sammlung konnte nicht erstellt werden.');
-      router.replace('/tools/habits');
+      return completeMutation(
+        mutationTicket,
+        backAction?.type
+          ? { type: 'back-save', action: backAction }
+          : {
+            type: 'bottom-save',
+            navigate: () => dismissHabitCollectionsToOverview(router),
+          }
+      );
     } catch (_error) {
       setError('Sammlung konnte nicht erstellt werden.');
+      return false;
     } finally {
+      submitInProgressRef.current = false;
       setSaving(false);
     }
-  }, [collectionName, selectedDays, selectedHabitIds, newHabits, memberOrder, addCollection]);
+  }, [
+    collectionName,
+    selectedDays,
+    selectedHabitIds,
+    newHabits,
+    memberOrder,
+    addCollection,
+    beginMutation,
+    completeMutation,
+  ]);
+  saveHandlerRef.current = handleCreate;
 
   const canCreate =
+    draftHydrated &&
     collectionName.trim().length > 0 &&
     collectionName.trim().length <= 60 &&
     selectedDays.size > 0 &&
@@ -293,6 +388,15 @@ export default function HabitCollectionCreateScreen() {
             <View style={createStyles.center}>
               <ActivityIndicator size="small" color={COLORS.gold} />
             </View>
+          ) : draftHydrationFailed ? (
+            <ToolStateCard
+              icon="alert-circle-outline"
+              title="Entwurf konnte nicht geladen werden"
+              subtitle="Bitte versuche es erneut."
+              actionLabel="Erneut versuchen"
+              onAction={retryHydration}
+              tone="error"
+            />
           ) : (
             <>
               {availableHabits.length > 0 && (

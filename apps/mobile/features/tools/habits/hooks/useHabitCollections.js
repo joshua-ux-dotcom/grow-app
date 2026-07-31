@@ -243,7 +243,7 @@ export function useHabitCollections() {
 
   const remove = useCallback(
     async (collectionId, expectedVersion) => {
-      if (!collectionId) return;
+      if (!collectionId) return false;
 
       let mutationOwnerId;
       try {
@@ -252,11 +252,11 @@ export function useHabitCollections() {
         if (mountedRef.current) {
           setActionError('Sammlung konnte nicht gelöscht werden.');
         }
-        return;
+        return false;
       }
 
       const actionKey = `delete:${collectionId}`;
-      if (pendingActionsRef.current.has(actionKey)) return;
+      if (pendingActionsRef.current.has(actionKey)) return false;
       pendingActionsRef.current.add(actionKey);
 
       const cacheKey = getOwnerCacheKey(mutationOwnerId, 'list');
@@ -273,6 +273,7 @@ export function useHabitCollections() {
 
       try {
         await deleteHabitCollection(collectionId, expectedVersion);
+        return true;
       } catch (_error) {
         setOwnerCache(cacheKey, previousCollections);
         if (mountedRef.current && ownerRef.current === mutationOwnerId) {
@@ -289,6 +290,7 @@ export function useHabitCollections() {
   );
 
   return {
+    ownerUserId,
     collections,
     loading,
     loadError,
