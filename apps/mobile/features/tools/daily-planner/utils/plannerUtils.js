@@ -32,6 +32,197 @@ export const DAY_NAMES_LONG = [
   'Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag',
 ];
 
+function isLeapYear(year) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function getDaysInMonth(year, month) {
+  if (month === 2) return isLeapYear(year) ? 29 : 28;
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
+function parseDateString(dateStr) {
+  if (typeof dateStr !== 'string') return null;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12) return null;
+  if (day < 1 || day > getDaysInMonth(year, month)) return null;
+
+  return { year, month, day };
+}
+
+function formatDateParts({ year, month, day }) {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function datePartsToOrdinal({ year, month, day }) {
+  const adjustedYear = year - (month <= 2 ? 1 : 0);
+  const era = Math.floor(adjustedYear / 400);
+  const yearOfEra = adjustedYear - era * 400;
+  const adjustedMonth = month + (month > 2 ? -3 : 9);
+  const dayOfYear = Math.floor((153 * adjustedMonth + 2) / 5) + day - 1;
+
+  return era * 146097
+    + yearOfEra * 365
+    + Math.floor(yearOfEra / 4)
+    - Math.floor(yearOfEra / 100)
+    + dayOfYear;
+}
+
+export function isValidDateString(dateStr) {
+  return parseDateString(dateStr) !== null;
+}
+
+export function addCalendarDays(dateStr, amount) {
+  const parts = parseDateString(dateStr);
+  if (!parts || !Number.isInteger(amount)) return null;
+
+  const next = { ...parts };
+  const direction = Math.sign(amount);
+  let remaining = Math.abs(amount);
+
+  while (remaining > 0) {
+    next.day += direction;
+
+    if (next.day > getDaysInMonth(next.year, next.month)) {
+      next.day = 1;
+      next.month += 1;
+      if (next.month > 12) {
+        next.month = 1;
+        next.year += 1;
+      }
+    } else if (next.day < 1) {
+      next.month -= 1;
+      if (next.month < 1) {
+        next.month = 12;
+        next.year -= 1;
+      }
+      if (next.year < 1) return null;
+      next.day = getDaysInMonth(next.year, next.month);
+    }
+
+    if (next.year > 9999) return null;
+    remaining -= 1;
+  }
+
+  return formatDateParts(next);
+}
+
+export function getEffectiveEventEndDate(event) {
+  if (!event || !isValidDateString(event.date)) return null;
+  return event.end_date == null ? event.date : event.end_date;
+}
+
+export function getInclusiveDayCount(startDate, endDate) {
+  const start = parseDateString(startDate);
+  const end = parseDateString(endDate);
+  if (!start || !end) return null;
+
+  const difference = datePartsToOrdinal(end) - datePartsToOrdinal(start);
+  return difference < 0 ? null : difference + 1;
+}
+
+export function getEventInterval(event) {
+  const startDate = event?.date;
+  const endDate = getEffectiveEventEndDate(event);
+  const dayCount = getInclusiveDayCount(startDate, endDate);
+  if (dayCount === null) return null;
+
+  return {
+    startDate,
+    endDate,
+    dayCount,
+    type: dayCount === 1 ? 'single' : 'multi',
+  };
+}
+
+export function eventOverlapsDate(event, dateStr) {
+  const interval = getEventInterval(event);
+  if (!interval || !isValidDateString(dateStr)) return false;
+  return interval.startDate <= dateStr && dateStr <= interval.endDate;
+}
+
+export function eventOverlapsMonth(event, year, monthIndex) {
+  if (!Number.isInteger(year) || year < 1 || year > 9999) return false;
+  if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return false;
+
+  const interval = getEventInterval(event);
+  if (!interval) return false;
+
+  const month = monthIndex + 1;
+  const monthStart = formatDateParts({ year, month, day: 1 });
+  const monthEnd = formatDateParts({ year, month, day: getDaysInMonth(year, month) });
+  return interval.startDate <= monthEnd && interval.endDate >= monthStart;
+}
+
+export function getEventSpanType(event) {
+  return getEventInterval(event)?.type ?? null;
+}
+
+export function getEventSegment(event, selectedDate) {
+  const interval = getEventInterval(event);
+  if (!interval || interval.type !== 'multi' || !eventOverlapsDate(event, selectedDate)) return null;
+  if (selectedDate === interval.startDate) return 'start';
+  if (selectedDate === interval.endDate) return 'end';
+  return 'middle';
+}
+
+export function buildMultiDayEventViewModel(event, selectedDate) {
+  if (!event?.id) return null;
+
+  const interval = getEventInterval(event);
+  const segment = getEventSegment(event, selectedDate);
+  if (!interval || !segment) return null;
+
+  const dayIndex = getInclusiveDayCount(interval.startDate, selectedDate);
+  if (dayIndex === null) return null;
+
+  return {
+    eventId: event.id,
+    title: event.title,
+    color: event.color,
+    startDate: interval.startDate,
+    endDate: interval.endDate,
+    startTime: event.start_time,
+    endTime: event.end_time,
+    selectedDate,
+    segment,
+    dayIndex,
+    totalDays: interval.dayCount,
+  };
+}
+
+export function getMonthEventDateMarkers(events, year, monthIndex) {
+  if (!Array.isArray(events)) return [];
+  if (!Number.isInteger(year) || year < 1 || year > 9999) return [];
+  if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return [];
+
+  const month = monthIndex + 1;
+  const monthStart = formatDateParts({ year, month, day: 1 });
+  const monthEnd = formatDateParts({ year, month, day: getDaysInMonth(year, month) });
+  const markers = new Set();
+
+  events.forEach(event => {
+    const interval = getEventInterval(event);
+    if (!interval || !eventOverlapsMonth(event, year, monthIndex)) return;
+
+    let current = interval.startDate < monthStart ? monthStart : interval.startDate;
+    const last = interval.endDate > monthEnd ? monthEnd : interval.endDate;
+
+    while (current && current <= last) {
+      markers.add(current);
+      current = addCalendarDays(current, 1);
+    }
+  });
+
+  return [...markers].sort();
+}
+
 export function toDateStr(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
