@@ -6,23 +6,29 @@ import {
   addEvent,
   updateEvent,
   deleteEvent,
-} from '../services/planner'
-
+} from '../services/planner';
 import {
-  minutesToTime,
   DAY_MINUTES,
+  isValidDateString,
+  minutesToTime,
 } from '../utils/plannerUtils';
-import { getPreloadedToolData, setPreloadedToolData } from '../../../../lib/preloadedTools';
-
-function isValidDateString(date) {
-  return typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date);
-}
+import {
+  clearPlannerOwnerCache,
+  getPlannerDayCache,
+  getPlannerMonthCache,
+  invalidatePlannerEventCaches,
+  setPlannerDayCache,
+  setPlannerMonthCache,
+} from '../cache/plannerCache';
+import { getCurrentUserId } from '../../../../services/authUser';
+import { supabase } from '../../../../services/supabaseClient';
 
 function normalizeEvent(event) {
   if (!event || !event.id || !isValidDateString(event.date)) return null;
 
   return {
     ...event,
+    end_date: event.end_date == null ? null : event.end_date,
     title: typeof event.title === 'string' ? event.title : '',
     start_time: typeof event.start_time === 'string' ? event.start_time : '00:00',
     end_time: typeof event.end_time === 'string' ? event.end_time : '00:30',
@@ -40,96 +46,188 @@ function sortEvents(events) {
 }
 
 export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
-  const monthCacheKey = `plannerMonth:${currentYear}-${currentMonth}`;
-  const dayCacheKey = selectedDate ? `plannerDay:${selectedDate}` : null;
-  const preloadedMonthEvents = getPreloadedToolData(monthCacheKey);
-  const preloadedDayEvents = dayCacheKey ? getPreloadedToolData(dayCacheKey) : null;
-
-  const [monthEventDates, setMonthEventDates] = useState(() => new Set(normalizeEvents(preloadedMonthEvents ?? []).map(event => event.date)));
-  const [events, setEvents] = useState(() => sortEvents(preloadedDayEvents ?? []));
+  const [ownerUserId, setOwnerUserId] = useState(null);
+  const [monthEventDates, setMonthEventDates] = useState(() => new Set());
+  const [events, setEvents] = useState([]);
   const [dayLoading, setDayLoading] = useState(false);
   const [dayError, setDayError] = useState(null);
+
   const mountedRef = useRef(true);
+  const ownerRef = useRef(null);
+  const eventsRef = useRef([]);
   const monthRequestRef = useRef(0);
   const dayRequestRef = useRef(0);
   const pendingActionsRef = useRef(new Set());
 
-  useEffect(() => {
-    mountedRef.current = true;
+  const activateOwner = useCallback((nextOwnerId) => {
+    const safeOwnerId = typeof nextOwnerId === 'string' && nextOwnerId ? nextOwnerId : null;
+    const previousOwnerId = ownerRef.current;
+    if (previousOwnerId === safeOwnerId) return;
 
-    return () => {
-      mountedRef.current = false;
-      pendingActionsRef.current.clear();
-    };
-  }, []);
-
-  const loadMonthEvents = useCallback(async () => {
-    const requestId = monthRequestRef.current + 1;
-    monthRequestRef.current = requestId;
-
-    try {
-      const data = normalizeEvents(await getEventsForMonth(currentYear, currentMonth + 1));
-
-      if (mountedRef.current && requestId === monthRequestRef.current) {
-        setMonthEventDates(new Set(data.map(event => event.date)));
-        setPreloadedToolData(monthCacheKey, data);
-      }
-    } catch {
-      // Dots may fail silently.
-    }
-  }, [currentYear, currentMonth, monthCacheKey]);
-
-  useEffect(() => {
-    loadMonthEvents();
-  }, [loadMonthEvents]);
-
-  const loadDayEvents = useCallback(async (dateStr, { silent = false } = {}) => {
-    if (!isValidDateString(dateStr)) return;
-
-    const requestId = dayRequestRef.current + 1;
-    dayRequestRef.current = requestId;
-
-    if (mountedRef.current) {
-      if (!silent) {
-        setDayLoading(true);
-      }
-      setDayError(null);
+    if (previousOwnerId && previousOwnerId !== safeOwnerId) {
+      clearPlannerOwnerCache(previousOwnerId);
     }
 
-    const cacheKey = `plannerDay:${dateStr}`;
-
-    try {
-      const data = sortEvents(await getEventsForDate(dateStr));
-      if (!mountedRef.current || requestId !== dayRequestRef.current) return;
-      setEvents(data);
-      setPreloadedToolData(cacheKey, data);
-    } catch {
-      if (!mountedRef.current || requestId !== dayRequestRef.current) return;
-      setDayError('Termine konnten nicht geladen werden.');
-    } finally {
-      if (mountedRef.current && requestId === dayRequestRef.current && !silent) {
-        setDayLoading(false);
-      }
-    }
-  }, []);
-
-  const clearEvents = useCallback(() => {
-    if (!mountedRef.current) return;
+    ownerRef.current = safeOwnerId;
+    monthRequestRef.current += 1;
     dayRequestRef.current += 1;
+    pendingActionsRef.current.clear();
+    eventsRef.current = [];
+    setOwnerUserId(safeOwnerId);
+    setMonthEventDates(new Set());
     setEvents([]);
     setDayError(null);
     setDayLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!selectedDate || !dayCacheKey) return;
+    mountedRef.current = true;
+    let authSequence = 0;
 
-    const cached = getPreloadedToolData(dayCacheKey);
-    if (cached) {
-      setEvents(sortEvents(cached));
-      loadDayEvents(selectedDate, { silent: true });
+    const resolveInitialOwner = async () => {
+      const sequence = ++authSequence;
+      try {
+        const userId = await getCurrentUserId();
+        if (mountedRef.current && sequence === authSequence) activateOwner(userId);
+      } catch {
+        if (mountedRef.current && sequence === authSequence) activateOwner(null);
+      }
+    };
+
+    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        authSequence += 1;
+        if (mountedRef.current) activateOwner(session?.user?.id ?? null);
+      }
+    );
+    resolveInitialOwner();
+
+    return () => {
+      mountedRef.current = false;
+      authSequence += 1;
+      monthRequestRef.current += 1;
+      dayRequestRef.current += 1;
+      pendingActionsRef.current.clear();
+      subscription?.unsubscribe?.();
+    };
+  }, [activateOwner]);
+
+  const loadMonthEvents = useCallback(async () => {
+    const requestOwnerId = ownerRef.current;
+    if (!requestOwnerId) return;
+
+    const requestId = ++monthRequestRef.current;
+    try {
+      const data = normalizeEvents(await getEventsForMonth(currentYear, currentMonth + 1));
+      if (
+        !mountedRef.current
+        || requestId !== monthRequestRef.current
+        || ownerRef.current !== requestOwnerId
+      ) return;
+
+      setMonthEventDates(new Set(data.map(event => event.date)));
+      setPlannerMonthCache(requestOwnerId, currentYear, currentMonth, data);
+    } catch {
+      // Calendar markers may fail silently.
     }
-  }, [selectedDate, dayCacheKey, loadDayEvents]);
+  }, [currentYear, currentMonth]);
+
+  const loadDayEvents = useCallback(async (dateStr, { silent = false } = {}) => {
+    if (!isValidDateString(dateStr)) return;
+    const requestOwnerId = ownerRef.current;
+    if (!requestOwnerId) return;
+
+    const requestId = ++dayRequestRef.current;
+    if (mountedRef.current) {
+      if (!silent) setDayLoading(true);
+      setDayError(null);
+    }
+
+    try {
+      const data = sortEvents(await getEventsForDate(dateStr));
+      if (
+        !mountedRef.current
+        || requestId !== dayRequestRef.current
+        || ownerRef.current !== requestOwnerId
+      ) return;
+
+      eventsRef.current = data;
+      setEvents(data);
+      setPlannerDayCache(requestOwnerId, dateStr, data);
+    } catch {
+      if (
+        !mountedRef.current
+        || requestId !== dayRequestRef.current
+        || ownerRef.current !== requestOwnerId
+      ) return;
+      setDayError('Termine konnten nicht geladen werden.');
+    } finally {
+      if (
+        mountedRef.current
+        && requestId === dayRequestRef.current
+        && ownerRef.current === requestOwnerId
+        && !silent
+      ) setDayLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ownerUserId) return;
+
+    const cached = getPlannerMonthCache(ownerUserId, currentYear, currentMonth);
+    if (cached != null) {
+      const normalized = normalizeEvents(cached);
+      setMonthEventDates(new Set(normalized.map(event => event.date)));
+    } else {
+      setMonthEventDates(new Set());
+    }
+    loadMonthEvents();
+  }, [ownerUserId, currentYear, currentMonth, loadMonthEvents]);
+
+  useEffect(() => {
+    if (!ownerUserId || !isValidDateString(selectedDate)) return;
+
+    const cached = getPlannerDayCache(ownerUserId, selectedDate);
+    if (cached == null) {
+      eventsRef.current = [];
+      setEvents([]);
+      loadDayEvents(selectedDate);
+      return;
+    }
+
+    const normalized = sortEvents(cached);
+    eventsRef.current = normalized;
+    setEvents(normalized);
+    loadDayEvents(selectedDate, { silent: true });
+  }, [ownerUserId, selectedDate, loadDayEvents]);
+
+  const clearEvents = useCallback(() => {
+    if (!mountedRef.current) return;
+    dayRequestRef.current += 1;
+    eventsRef.current = [];
+    setEvents([]);
+    setDayError(null);
+    setDayLoading(false);
+  }, []);
+
+  const requireMutationOwner = useCallback(async () => {
+    const mutationOwnerId = ownerRef.current;
+    if (!mutationOwnerId) throw new Error('Nicht eingeloggt');
+
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId || currentUserId !== mutationOwnerId) {
+      throw new Error('Nicht eingeloggt');
+    }
+    return mutationOwnerId;
+  }, []);
+
+  const refreshVisiblePlanner = useCallback(async (mutationOwnerId) => {
+    if (!mountedRef.current || ownerRef.current !== mutationOwnerId) return;
+
+    const requests = [loadMonthEvents()];
+    if (isValidDateString(selectedDate)) requests.push(loadDayEvents(selectedDate));
+    await Promise.all(requests);
+  }, [loadMonthEvents, loadDayEvents, selectedDate]);
 
   const saveEvent = useCallback(async ({
     editingEventId = null,
@@ -143,91 +241,99 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
     if (modalStartMinutes === null || modalStartMinutes === undefined) return null;
     if (!isValidDateString(selectedDate)) return null;
 
-    const actionKey = editingEventId ? `update:${editingEventId}` : `add:${selectedDate}:${safeTitle}:${modalStartMinutes}`;
+    let mutationOwnerId;
+    try {
+      mutationOwnerId = await requireMutationOwner();
+    } catch {
+      return null;
+    }
+
+    const actionKey = editingEventId
+      ? `${mutationOwnerId}:update:${editingEventId}`
+      : `${mutationOwnerId}:add:${selectedDate}:${safeTitle}:${modalStartMinutes}`;
     if (pendingActionsRef.current.has(actionKey)) return null;
     pendingActionsRef.current.add(actionKey);
+
+    const originalEvent = editingEventId
+      ? eventsRef.current.find(event => event.id === editingEventId) ?? null
+      : null;
 
     try {
       const safeStartMinutes = Math.max(0, Math.min(Number(modalStartMinutes), DAY_MINUTES - 1));
       const safeDuration = Math.max(1, Math.min(Number(modalDuration) || 1, DAY_MINUTES - 1));
       const safeEndMinutes = Math.min(safeStartMinutes + safeDuration, DAY_MINUTES - 1);
-
       const startTime = minutesToTime(safeStartMinutes);
       const endTime = minutesToTime(safeEndMinutes);
 
-      if (editingEventId) {
-        const updatedEvent = normalizeEvent(await updateEvent({
+      const savedEvent = normalizeEvent(editingEventId
+        ? await updateEvent({
           id: editingEventId,
           startTime,
           endTime,
           title: safeTitle,
           color: modalColor,
+          expectedUserId: mutationOwnerId,
+        })
+        : await addEvent({
+          date: selectedDate,
+          startTime,
+          endTime,
+          title: safeTitle,
+          color: modalColor,
+          expectedUserId: mutationOwnerId,
         }));
 
-        if (!updatedEvent) return null;
+      if (!savedEvent) return null;
+      if (!mountedRef.current || ownerRef.current !== mutationOwnerId) return savedEvent;
 
-        if (mountedRef.current) {
-          setEvents(prev => {
-            const nextEvents = sortEvents(prev.map(event => event.id === editingEventId ? updatedEvent : event));
-            setPreloadedToolData(`plannerDay:${selectedDate}`, nextEvents);
-            return nextEvents;
-          });
-        }
-
-        return updatedEvent;
-      }
-
-      const newEvent = normalizeEvent(await addEvent({
-        date: selectedDate,
-        startTime,
-        endTime,
-        title: safeTitle,
-        color: modalColor,
-      }));
-
-      if (!newEvent) return null;
-
-      if (mountedRef.current) {
-        setEvents(prev => {
-          const nextEvents = sortEvents([...prev, newEvent]);
-          setPreloadedToolData(`plannerDay:${selectedDate}`, nextEvents);
-          return nextEvents;
-        });
-
-        setMonthEventDates(prev => new Set([...prev, selectedDate]));
-      }
-
-      return newEvent;
+      invalidatePlannerEventCaches(
+        mutationOwnerId,
+        originalEvent ? [originalEvent, savedEvent] : savedEvent,
+      );
+      await refreshVisiblePlanner(mutationOwnerId);
+      return savedEvent;
     } finally {
       pendingActionsRef.current.delete(actionKey);
     }
-  }, [selectedDate]);
+  }, [selectedDate, requireMutationOwner, refreshVisiblePlanner]);
 
   const removeEvent = useCallback(async (id) => {
     if (!id) return;
 
-    const actionKey = `delete:${id}`;
+    let mutationOwnerId;
+    try {
+      mutationOwnerId = await requireMutationOwner();
+    } catch {
+      return;
+    }
+
+    const actionKey = `${mutationOwnerId}:delete:${id}`;
     if (pendingActionsRef.current.has(actionKey)) return;
     pendingActionsRef.current.add(actionKey);
+    const originalEvent = eventsRef.current.find(event => event.id === id) ?? null;
 
-    setEvents(prev => {
-      const nextEvents = prev.filter(event => event.id !== id);
-      if (selectedDate) {
-        setPreloadedToolData(`plannerDay:${selectedDate}`, nextEvents);
-      }
-      return nextEvents;
-    });
+    if (mountedRef.current && ownerRef.current === mutationOwnerId) {
+      const nextEvents = eventsRef.current.filter(event => event.id !== id);
+      eventsRef.current = nextEvents;
+      setEvents(nextEvents);
+    }
 
     try {
-      await deleteEvent(id);
+      await deleteEvent(id, mutationOwnerId);
+      if (!mountedRef.current || ownerRef.current !== mutationOwnerId) return;
+
+      if (originalEvent) invalidatePlannerEventCaches(mutationOwnerId, originalEvent);
+      await refreshVisiblePlanner(mutationOwnerId);
     } catch {
-      if (selectedDate) {
-        loadDayEvents(selectedDate);
-      }
+      if (
+        mountedRef.current
+        && ownerRef.current === mutationOwnerId
+        && isValidDateString(selectedDate)
+      ) await loadDayEvents(selectedDate);
     } finally {
       pendingActionsRef.current.delete(actionKey);
     }
-  }, [selectedDate, loadDayEvents]);
+  }, [selectedDate, loadDayEvents, requireMutationOwner, refreshVisiblePlanner]);
 
   return {
     monthEventDates,

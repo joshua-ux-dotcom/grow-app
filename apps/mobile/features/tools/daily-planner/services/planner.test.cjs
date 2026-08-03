@@ -266,3 +266,67 @@ test('delete rethrows the Supabase error unchanged', async () => {
     error => error === expectedError,
   );
 });
+
+test('expected owner allows add, update and delete without changing payload semantics', async () => {
+  const add = loadService({ queryResult: { data: row, error: null } });
+  await add.service.addEvent({
+    date: '2026-08-02', startTime: '09:00', endTime: '10:00', title: 'Termin',
+    expectedUserId: 'user-a',
+  });
+  assert.equal(add.authCalls, 1);
+  assert.equal(findCall(add.calls, 'insert')[1].user_id, 'user-a');
+  assert.equal('expectedUserId' in findCall(add.calls, 'insert')[1], false);
+
+  const update = loadService({ queryResult: { data: row, error: null } });
+  await update.service.updateEvent({
+    id: eventId, startTime: '09:00', endTime: '10:00', title: 'Termin',
+    expectedUserId: 'user-a',
+  });
+  assert.ok(update.calls.some(call => call[0] === 'eq' && call[1] === 'user_id' && call[2] === 'user-a'));
+
+  const remove = loadService();
+  await remove.service.deleteEvent(eventId, 'user-a');
+  assert.ok(remove.calls.some(call => call[0] === 'delete'));
+});
+
+test('expected owner mismatch blocks add, update and delete before Supabase', async () => {
+  const operations = [
+    service => service.addEvent({
+      date: '2026-08-02', startTime: '09:00', endTime: '10:00', title: 'Termin',
+      expectedUserId: 'user-b',
+    }),
+    service => service.updateEvent({
+      id: eventId, startTime: '09:00', endTime: '10:00', title: 'Termin',
+      expectedUserId: 'user-b',
+    }),
+    service => service.deleteEvent(eventId, 'user-b'),
+  ];
+
+  for (const operation of operations) {
+    const attempt = loadService({ currentUserId: 'user-a' });
+    await assert.rejects(operation(attempt.service), /Nicht eingeloggt/);
+    assert.equal(attempt.authCalls, 1);
+    assert.deepEqual(attempt.calls, []);
+  }
+});
+
+test('missing session with expected owner blocks every mutation before Supabase', async () => {
+  const operations = [
+    service => service.addEvent({
+      date: '2026-08-02', startTime: '09:00', endTime: '10:00', title: 'Termin',
+      expectedUserId: 'user-a',
+    }),
+    service => service.updateEvent({
+      id: eventId, startTime: '09:00', endTime: '10:00', title: 'Termin',
+      expectedUserId: 'user-a',
+    }),
+    service => service.deleteEvent(eventId, 'user-a'),
+  ];
+
+  for (const operation of operations) {
+    const attempt = loadService({ currentUserId: null });
+    await assert.rejects(operation(attempt.service), /Nicht eingeloggt/);
+    assert.equal(attempt.authCalls, 1);
+    assert.deepEqual(attempt.calls, []);
+  }
+});

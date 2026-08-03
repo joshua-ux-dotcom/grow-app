@@ -84,7 +84,15 @@ export async function getEventsForMonth(year, month) {
   return normalizePlannerEvents(data);
 }
 
-export async function addEvent({ date, endDate = null, startTime, endTime, title, color }) {
+export async function addEvent({
+  date,
+  endDate = null,
+  startTime,
+  endTime,
+  title,
+  color,
+  expectedUserId = null,
+}) {
   const safeTitle = typeof title === 'string' ? title.trim() : '';
   if (!safeTitle) throw new Error('Titel fehlt.');
   if (!isValidDateString(date)) throw new Error('Ungültiges Datum.');
@@ -92,7 +100,9 @@ export async function addEvent({ date, endDate = null, startTime, endTime, title
   const normalizedEndDate = normalizeEndDate(date, endDate);
 
   const userId = await getCurrentUserId();
-  if (!userId) throw new Error('Nicht eingeloggt');
+  if (!userId || (expectedUserId && userId !== expectedUserId)) {
+    throw new Error('Nicht eingeloggt');
+  }
 
   const { data, error } = await supabase
     .from('daily_planner_events')
@@ -113,11 +123,15 @@ export async function addEvent({ date, endDate = null, startTime, endTime, title
   return normalizePlannerEvent(data);
 }
 
-export async function deleteEvent(id) {
+export async function deleteEvent(id, expectedUserId = null) {
   if (!isValidEventId(id)) return;
 
   const userId = await getCurrentUserId();
-  if (!userId) return;
+  if (!userId) {
+    if (expectedUserId) throw new Error('Nicht eingeloggt');
+    return;
+  }
+  if (expectedUserId && userId !== expectedUserId) throw new Error('Nicht eingeloggt');
 
   const { error } = await supabase
     .from('daily_planner_events')
@@ -128,7 +142,16 @@ export async function deleteEvent(id) {
   if (error) throw error;
 }
 
-export async function updateEvent({ id, date, endDate, startTime, endTime, title, color }) {
+export async function updateEvent({
+  id,
+  date,
+  endDate,
+  startTime,
+  endTime,
+  title,
+  color,
+  expectedUserId = null,
+}) {
   if (!id) throw new Error('Termin fehlt.');
 
   const safeTitle = typeof title === 'string' ? title.trim() : '';
@@ -146,7 +169,9 @@ export async function updateEvent({ id, date, endDate, startTime, endTime, title
   }
 
   const userId = await getCurrentUserId();
-  if (!userId) throw new Error('Nicht eingeloggt');
+  if (!userId || (expectedUserId && userId !== expectedUserId)) {
+    throw new Error('Nicht eingeloggt');
+  }
 
   const { data, error } = await supabase
     .from('daily_planner_events')
