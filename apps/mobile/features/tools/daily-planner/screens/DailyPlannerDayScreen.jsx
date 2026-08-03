@@ -88,8 +88,6 @@ export default function DailyPlannerDayScreen() {
   }, [events]);
 
   useEffect(() => {
-    loadDayEvents(selectedDate);
-
     const now = new Date();
     const scrollSlot = selectedDate === toDateStr(now)
       ? Math.max(0, now.getHours() * 2 - 2)
@@ -100,7 +98,7 @@ export default function DailyPlannerDayScreen() {
     }, 200);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedDate, loadDayEvents]);
+  }, [selectedDate]);
 
   const backToCalendar = useCallback(() => {
     router.back();
