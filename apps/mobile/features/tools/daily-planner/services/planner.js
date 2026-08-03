@@ -6,6 +6,11 @@ function isValidTimeString(time) {
   return typeof time === 'string' && /^\d{2}:\d{2}$/.test(time);
 }
 
+function isValidEventId(id) {
+  return typeof id === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 function normalizeEndDate(date, endDate) {
   if (endDate == null || endDate === date) return null;
   if (!isValidDateString(endDate)) throw new Error('Ungültiges Enddatum.');
@@ -109,12 +114,16 @@ export async function addEvent({ date, endDate = null, startTime, endTime, title
 }
 
 export async function deleteEvent(id) {
-  if (!id) return;
+  if (!isValidEventId(id)) return;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return;
 
   const { error } = await supabase
     .from('daily_planner_events')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', userId);
 
   if (error) throw error;
 }

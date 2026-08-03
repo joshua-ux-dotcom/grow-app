@@ -83,6 +83,8 @@ function findCall(calls, method) {
   return calls.find(call => call[0] === method);
 }
 
+const eventId = '11111111-2222-4333-8444-555555555555';
+
 test('day query uses an inclusive owned interval filter and normalizes single-day rows', async () => {
   const { calls, service } = loadService({ queryResult: { data: [row], error: null } });
   const result = await service.getEventsForDate('2026-08-02');
@@ -222,4 +224,45 @@ test('normalization preserves id, dates, times, title and color while canonicali
   assert.equal(service.normalizePlannerEvent(input).end_time, '10:00');
   assert.equal(service.normalizePlannerEvent(input).title, 'Termin');
   assert.equal(service.normalizePlannerEvent(input).color, '#D4AF37');
+});
+
+test('delete filters by both valid event id and authenticated owner', async () => {
+  const attempt = loadService();
+
+  await attempt.service.deleteEvent(eventId);
+
+  assert.equal(attempt.authCalls, 1);
+  assert.ok(attempt.calls.some(call => call[0] === 'delete'));
+  assert.ok(attempt.calls.some(call => call[0] === 'eq' && call[1] === 'id' && call[2] === eventId));
+  assert.ok(attempt.calls.some(call => call[0] === 'eq' && call[1] === 'user_id' && call[2] === 'user-a'));
+});
+
+test('delete rejects empty and invalid event ids before auth or Supabase', async () => {
+  for (const id of [null, undefined, '', '   ', 'event-a', '11111111-2222-4333-8444']) {
+    const attempt = loadService();
+
+    await assert.doesNotReject(attempt.service.deleteEvent(id));
+
+    assert.equal(attempt.authCalls, 0);
+    assert.deepEqual(attempt.calls, []);
+  }
+});
+
+test('delete performs no Supabase mutation without a valid session', async () => {
+  const attempt = loadService({ currentUserId: null });
+
+  await assert.doesNotReject(attempt.service.deleteEvent(eventId));
+
+  assert.equal(attempt.authCalls, 1);
+  assert.deepEqual(attempt.calls, []);
+});
+
+test('delete rethrows the Supabase error unchanged', async () => {
+  const expectedError = Object.assign(new Error('delete failed'), { code: '42501' });
+  const attempt = loadService({ queryResult: { data: null, error: expectedError } });
+
+  await assert.rejects(
+    attempt.service.deleteEvent(eventId),
+    error => error === expectedError,
+  );
 });
