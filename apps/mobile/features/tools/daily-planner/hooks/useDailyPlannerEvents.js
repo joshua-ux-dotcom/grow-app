@@ -231,6 +231,10 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
 
   const saveEvent = useCallback(async ({
     editingEventId = null,
+    eventDate = selectedDate,
+    isMultiDay = false,
+    endDate = null,
+    isAllDay = false,
     modalTitle,
     modalStartMinutes,
     modalDuration,
@@ -238,8 +242,11 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
   }) => {
     const safeTitle = typeof modalTitle === 'string' ? modalTitle.trim() : '';
     if (!safeTitle) return null;
-    if (modalStartMinutes === null || modalStartMinutes === undefined) return null;
-    if (!isValidDateString(selectedDate)) return null;
+    if (!isAllDay && (modalStartMinutes === null || modalStartMinutes === undefined)) return null;
+    if (!isValidDateString(eventDate)) return null;
+    if (isMultiDay && !isValidDateString(endDate)) return null;
+    if (isMultiDay && endDate < eventDate) return null;
+    const canonicalEndDate = isMultiDay ? endDate : null;
 
     let mutationOwnerId;
     try {
@@ -250,7 +257,7 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
 
     const actionKey = editingEventId
       ? `${mutationOwnerId}:update:${editingEventId}`
-      : `${mutationOwnerId}:add:${selectedDate}:${safeTitle}:${modalStartMinutes}`;
+      : `${mutationOwnerId}:add:${eventDate}:${safeTitle}:${modalStartMinutes}`;
     if (pendingActionsRef.current.has(actionKey)) return null;
     pendingActionsRef.current.add(actionKey);
 
@@ -259,15 +266,24 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
       : null;
 
     try {
-      const safeStartMinutes = Math.max(0, Math.min(Number(modalStartMinutes), DAY_MINUTES - 1));
-      const safeDuration = Math.max(1, Math.min(Number(modalDuration) || 1, DAY_MINUTES - 1));
-      const safeEndMinutes = Math.min(safeStartMinutes + safeDuration, DAY_MINUTES - 1);
-      const startTime = minutesToTime(safeStartMinutes);
-      const endTime = minutesToTime(safeEndMinutes);
+      let startTime;
+      let endTime;
+      if (isAllDay) {
+        startTime = '00:00';
+        endTime = '23:59';
+      } else {
+        const safeStartMinutes = Math.max(0, Math.min(Number(modalStartMinutes), DAY_MINUTES - 1));
+        const safeDuration = Math.max(1, Math.min(Number(modalDuration) || 1, DAY_MINUTES - 1));
+        const safeEndMinutes = Math.min(safeStartMinutes + safeDuration, DAY_MINUTES - 1);
+        startTime = minutesToTime(safeStartMinutes);
+        endTime = minutesToTime(safeEndMinutes);
+      }
 
       const savedEvent = normalizeEvent(editingEventId
         ? await updateEvent({
           id: editingEventId,
+          date: eventDate,
+          endDate: canonicalEndDate,
           startTime,
           endTime,
           title: safeTitle,
@@ -275,7 +291,8 @@ export function useDailyPlannerEvents(currentYear, currentMonth, selectedDate) {
           expectedUserId: mutationOwnerId,
         })
         : await addEvent({
-          date: selectedDate,
+          date: eventDate,
+          endDate: canonicalEndDate,
           startTime,
           endTime,
           title: safeTitle,

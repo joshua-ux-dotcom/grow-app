@@ -26,6 +26,7 @@ import {
   dateToDayMinutes,
   applyEventOverlapLayout,
   EVENT_COLORS,
+  isValidDateString,
   timeToMinutes,
 } from '../utils/plannerUtils';
 
@@ -35,10 +36,6 @@ import { AddEventModal } from '../components/AddEventModal';
 import { DeleteEventModal } from '../components/DeleteEventModal';
 import { styles } from '../styles/dailyPlannerStyles';
 import { useDelayedLoading } from '../../../../hooks/useDelayedLoading';
-
-function isValidDateString(dateStr) {
-  return typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
-}
 
 function getDateParts(dateStr) {
   const [year, month] = dateStr.split('-').map(Number);
@@ -77,9 +74,15 @@ export default function DailyPlannerDayScreen() {
   const [modalFromPlus, setModalFromPlus] = useState(false);
   const [modalPickerDate, setModalPickerDate] = useState(dayMinutesToDate(16 * 60));
   const [modalShowPicker, setModalShowPicker] = useState(false);
+  const [modalEventDate, setModalEventDate] = useState(selectedDate);
+  const [modalIsMultiDay, setModalIsMultiDay] = useState(false);
+  const [modalEndDate, setModalEndDate] = useState(selectedDate);
+  const [modalShowEndDatePicker, setModalShowEndDatePicker] = useState(false);
+  const [modalIsAllDay, setModalIsAllDay] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const previousModalTimeRef = useRef(null);
   const dayScrollRef = useRef(null);
   const showDayLoading = useDelayedLoading(dayLoading);
 
@@ -109,7 +112,13 @@ export default function DailyPlannerDayScreen() {
     setModalDuration(60);
     setModalColor(EVENT_COLORS[0].value);
     setModalShowPicker(false);
-  }, []);
+    setModalEventDate(selectedDate);
+    setModalIsMultiDay(false);
+    setModalEndDate(selectedDate);
+    setModalShowEndDatePicker(false);
+    setModalIsAllDay(false);
+    previousModalTimeRef.current = null;
+  }, [selectedDate]);
 
   const openAddModal = useCallback((slot) => {
     const startMinutes = slotToMinutes(slot);
@@ -137,6 +146,15 @@ export default function DailyPlannerDayScreen() {
     setModalDuration(durationMinutes);
     setModalColor(event.color || EVENT_COLORS[0].value);
     setModalShowPicker(false);
+    const eventDate = event.date;
+    const isMultiDay = isValidDateString(event.end_date) && event.end_date > eventDate;
+    setModalEventDate(eventDate);
+    setModalIsMultiDay(isMultiDay);
+    setModalEndDate(isMultiDay ? event.end_date : eventDate);
+    setModalShowEndDatePicker(false);
+    const isAllDay = event.start_time === '00:00' && event.end_time === '23:59';
+    setModalIsAllDay(isAllDay);
+    previousModalTimeRef.current = null;
 
     setModalVisible(true);
   }, []);
@@ -153,14 +171,36 @@ export default function DailyPlannerDayScreen() {
     setModalVisible(true);
   }, [resetModalBaseState]);
 
+  const toggleModalAllDay = useCallback(() => {
+    if (modalIsAllDay) {
+      const previous = previousModalTimeRef.current;
+      const restoredStart = previous ? previous.startMinutes : 16 * 60;
+      const restoredDuration = previous ? previous.duration : 60;
+      previousModalTimeRef.current = null;
+      setModalStartMinutes(restoredStart);
+      setModalDuration(restoredDuration);
+      setModalPickerDate(dayMinutesToDate(restoredStart));
+      setModalIsAllDay(false);
+      return;
+    }
+
+    previousModalTimeRef.current = { startMinutes: modalStartMinutes, duration: modalDuration };
+    setModalShowPicker(false);
+    setModalIsAllDay(true);
+  }, [modalIsAllDay, modalStartMinutes, modalDuration]);
+
   const handleSave = useCallback(async () => {
-    if (!modalTitle.trim() || modalStartMinutes === null) return;
+    if (!modalTitle.trim() || (!modalIsAllDay && modalStartMinutes === null)) return;
 
     setSaving(true);
 
     try {
       const savedEvent = await saveEvent({
         editingEventId,
+        eventDate: modalEventDate,
+        isMultiDay: modalIsMultiDay,
+        endDate: modalIsMultiDay ? modalEndDate : null,
+        isAllDay: modalIsAllDay,
         modalTitle,
         modalStartMinutes,
         modalDuration,
@@ -174,10 +214,7 @@ export default function DailyPlannerDayScreen() {
 
       setModalVisible(false);
       setEditingEventId(null);
-      setModalTitle('');
-      setModalDuration(60);
-      setModalColor(EVENT_COLORS[0].value);
-      setModalShowPicker(false);
+      resetModalBaseState();
     } catch (error) {
       logger.debug('[DailyPlanner] Save failed:', error);
     } finally {
@@ -185,11 +222,16 @@ export default function DailyPlannerDayScreen() {
     }
   }, [
     editingEventId,
+    modalEventDate,
+    modalIsMultiDay,
+    modalEndDate,
+    modalIsAllDay,
     modalTitle,
     modalStartMinutes,
     modalDuration,
     modalColor,
     saveEvent,
+    resetModalBaseState,
   ]);
 
   const handleDelete = useCallback(async (id) => {
@@ -286,6 +328,7 @@ export default function DailyPlannerDayScreen() {
             onClose={() => {
               setModalVisible(false);
               setEditingEventId(null);
+              resetModalBaseState();
             }}
             sheetTitle={editingEventId ? 'Termin bearbeiten' : 'Neuer Termin'}
             modalFromPlus={modalFromPlus}
@@ -301,6 +344,15 @@ export default function DailyPlannerDayScreen() {
             setModalDuration={setModalDuration}
             modalColor={modalColor}
             setModalColor={setModalColor}
+            modalEventDate={modalEventDate}
+            modalIsMultiDay={modalIsMultiDay}
+            setModalIsMultiDay={setModalIsMultiDay}
+            modalEndDate={modalEndDate}
+            setModalEndDate={setModalEndDate}
+            modalShowEndDatePicker={modalShowEndDatePicker}
+            setModalShowEndDatePicker={setModalShowEndDatePicker}
+            modalIsAllDay={modalIsAllDay}
+            onToggleAllDay={toggleModalAllDay}
             saving={saving}
             onSave={handleSave}
           />

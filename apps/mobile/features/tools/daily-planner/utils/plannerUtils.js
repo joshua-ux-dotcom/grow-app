@@ -78,6 +78,24 @@ export function isValidDateString(dateStr) {
   return parseDateString(dateStr) !== null;
 }
 
+export function dateStringToLocalDate(dateStr) {
+  const parts = parseDateString(dateStr);
+  if (!parts) return null;
+
+  return new Date(parts.year, parts.month - 1, parts.day, 0, 0, 0, 0);
+}
+
+export function localDateToDateString(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+
+  const dateStr = formatDateParts({
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  });
+  return isValidDateString(dateStr) ? dateStr : null;
+}
+
 export function addCalendarDays(dateStr, amount) {
   const parts = parseDateString(dateStr);
   if (!parts || !Number.isInteger(amount)) return null;

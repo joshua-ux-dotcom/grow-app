@@ -40,7 +40,19 @@ const {
   getInclusiveDayCount,
   getMonthEventDateMarkers,
   isValidDateString,
+  dateStringToLocalDate,
+  localDateToDateString,
 } = moduleUnderTest.exports;
+
+test('converts floating calendar dates without UTC conversion', () => {
+  for (const dateStr of ['2024-02-29', '2026-03-29', '2026-10-25']) {
+    const localDate = dateStringToLocalDate(dateStr);
+    assert.equal(localDateToDateString(localDate), dateStr);
+    assert.equal(localDate.getHours(), 0);
+  }
+  assert.equal(dateStringToLocalDate('2026-02-30'), null);
+  assert.equal(localDateToDateString(new Date('invalid')), null);
+});
 
 test('validates real YYYY-MM-DD calendar dates', () => {
   for (const value of ['2026-08-02', '2024-02-29', '2026-03-29', '2026-10-25']) {

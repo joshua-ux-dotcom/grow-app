@@ -18,9 +18,12 @@ import { COLORS } from '../../../../constants/colors';
 import { s, sv, sf } from '../../../../constants/layout';
 import {
   EVENT_COLORS,
+  dateStringToLocalDate,
   dateToDayMinutes,
   dayMinutesToDate,
   formatDurationLabel,
+  isValidDateString,
+  localDateToDateString,
   minutesToTime,
 } from '../utils/plannerUtils';
 
@@ -41,10 +44,21 @@ export function AddEventModal({
   setModalDuration,
   modalColor,
   setModalColor,
+  modalEventDate,
+  modalIsMultiDay,
+  setModalIsMultiDay,
+  modalEndDate,
+  setModalEndDate,
+  modalShowEndDatePicker,
+  setModalShowEndDatePicker,
+  modalIsAllDay,
+  onToggleAllDay,
   saving,
   onSave,
 }) {
   const durationPickerDate = dayMinutesToDate(modalDuration);
+  const startDateValue = dateStringToLocalDate(modalEventDate);
+  const endDateValue = dateStringToLocalDate(modalEndDate) ?? startDateValue;
 
   const handleClose = () => {
     Keyboard.dismiss();
@@ -84,9 +98,51 @@ export function AddEventModal({
     }
   };
 
+  const handleEndDateChange = (event, date) => {
+    if (Platform.OS === 'android') {
+      if (event.type !== 'dismissed' && date) {
+        const nextEndDate = localDateToDateString(date);
+        if (nextEndDate && nextEndDate >= modalEventDate) setModalEndDate(nextEndDate);
+      }
+
+      setModalShowEndDatePicker(false);
+      return;
+    }
+
+    if (date) {
+      const nextEndDate = localDateToDateString(date);
+      if (nextEndDate && nextEndDate >= modalEventDate) setModalEndDate(nextEndDate);
+    }
+  };
+
+  const toggleMultiDay = () => {
+    Keyboard.dismiss();
+    if (modalIsMultiDay) {
+      setModalIsMultiDay(false);
+      setModalShowEndDatePicker(false);
+      setModalEndDate(null);
+      return;
+    }
+
+    setModalEndDate(
+      isValidDateString(modalEndDate) && modalEndDate >= modalEventDate
+        ? modalEndDate
+        : modalEventDate,
+    );
+    setModalIsMultiDay(true);
+  };
+
+  const handleToggleAllDay = () => {
+    Keyboard.dismiss();
+    onToggleAllDay();
+  };
+
   const canSave =
     modalTitle.trim().length > 0 &&
-    modalStartMinutes !== null &&
+    (modalIsAllDay || modalStartMinutes !== null) &&
+    (!modalIsMultiDay || (
+      isValidDateString(modalEndDate) && modalEndDate >= modalEventDate
+    )) &&
     !saving;
 
   return (
@@ -107,13 +163,13 @@ export function AddEventModal({
             >
               <Text style={styles.sheetTitle}>{sheetTitle}</Text>
 
-            {!modalFromPlus && (
+            {!modalIsAllDay && !modalFromPlus && (
               <Text style={styles.sheetSub}>
                 ab {minutesToTime(modalStartMinutes ?? 0)} Uhr
               </Text>
             )}
 
-            {modalFromPlus && (
+            {!modalIsAllDay && modalFromPlus && (
               <>
                 <Pressable
                   style={({ pressed }) => [
@@ -186,21 +242,108 @@ export function AddEventModal({
               onSubmitEditing={() => Keyboard.dismiss()}
             />
 
-            <Text style={styles.durationLabel}>
-              DAUER · {formatDurationLabel(modalDuration)}
-            </Text>
+            <Pressable
+              style={({ pressed }) => [styles.multiDayRow, pressed && styles.pressedSubtle]}
+              onPress={handleToggleAllDay}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: modalIsAllDay }}
+              accessibilityLabel="Ganztägig"
+            >
+              <View style={[styles.checkbox, modalIsAllDay && styles.checkboxActive]}>
+                {modalIsAllDay && (
+                  <Ionicons name="checkmark" size={s(14)} color={COLORS.black} />
+                )}
+              </View>
+              <Text style={styles.multiDayText}>Ganztägig</Text>
+            </Pressable>
 
-            <View style={styles.durationPickerWrap}>
-              <DateTimePicker
-                value={durationPickerDate}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                themeVariant="dark"
-                accentColor={COLORS.gold}
-                onChange={handleDurationChange}
-                style={styles.durationPicker}
-              />
-            </View>
+            <Pressable
+              style={({ pressed }) => [styles.multiDayRow, pressed && styles.pressedSubtle]}
+              onPress={toggleMultiDay}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: modalIsMultiDay }}
+              accessibilityLabel="Mehrtägiger Termin"
+            >
+              <View style={[styles.checkbox, modalIsMultiDay && styles.checkboxActive]}>
+                {modalIsMultiDay && (
+                  <Ionicons name="checkmark" size={s(14)} color={COLORS.black} />
+                )}
+              </View>
+              <Text style={styles.multiDayText}>Mehrtägiger Termin</Text>
+            </Pressable>
+
+            {modalIsMultiDay && startDateValue && endDateValue && (
+              <>
+                <Pressable
+                  style={({ pressed }) => [styles.endDateToggle, pressed && styles.pressedSubtle]}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setModalShowEndDatePicker(value => !value);
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={s(17)} color={COLORS.gold} />
+                  <View style={styles.endDateTextWrap}>
+                    <Text style={styles.endDateLabel}>ENDDATUM</Text>
+                    <Text style={styles.endDateValue}>
+                      {endDateValue.toLocaleDateString('de-DE', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={modalShowEndDatePicker ? 'chevron-up' : 'chevron-down'}
+                    size={s(14)}
+                    color={COLORS.textDim}
+                  />
+                </Pressable>
+
+                {modalShowEndDatePicker && (
+                  <View style={styles.endDatePickerWrap}>
+                    <DateTimePicker
+                      value={endDateValue}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      minimumDate={startDateValue}
+                      themeVariant="dark"
+                      accentColor={COLORS.gold}
+                      onChange={handleEndDateChange}
+                      style={styles.datePicker}
+                    />
+                    {Platform.OS === 'ios' && (
+                      <Pressable
+                        style={({ pressed }) => [styles.endDateDoneBtn, pressed && styles.pressedCircle]}
+                        onPress={() => setModalShowEndDatePicker(false)}
+                        hitSlop={s(8)}
+                      >
+                        <Ionicons name="checkmark" size={s(20)} color={COLORS.black} />
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+
+            {!modalIsAllDay && (
+              <>
+                <Text style={styles.durationLabel}>
+                  DAUER · {formatDurationLabel(modalDuration)}
+                </Text>
+
+                <View style={styles.durationPickerWrap}>
+                  <DateTimePicker
+                    value={durationPickerDate}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    themeVariant="dark"
+                    accentColor={COLORS.gold}
+                    onChange={handleDurationChange}
+                    style={styles.durationPicker}
+                  />
+                </View>
+              </>
+            )}
 
             <Text style={styles.durationLabel}>FARBE</Text>
 
@@ -349,6 +492,80 @@ const styles = StyleSheet.create({
     fontSize: sf(15),
     fontWeight: '600',
     marginBottom: sv(14),
+  },
+  multiDayRow: {
+    minHeight: sv(42),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(10),
+    marginBottom: sv(12),
+  },
+  checkbox: {
+    width: s(21),
+    height: s(21),
+    borderRadius: s(5),
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    backgroundColor: 'rgba(0,0,0,0.44)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: COLORS.gold,
+    borderColor: COLORS.gold,
+  },
+  multiDayText: {
+    color: COLORS.textSecondary,
+    fontSize: sf(14),
+    fontWeight: '700',
+  },
+  endDateToggle: {
+    minHeight: sv(52),
+    borderRadius: s(14),
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    backgroundColor: 'rgba(0,0,0,0.44)',
+    paddingHorizontal: s(14),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(10),
+    marginBottom: sv(12),
+  },
+  endDateTextWrap: {
+    flex: 1,
+  },
+  endDateLabel: {
+    color: COLORS.textDim,
+    fontSize: sf(10),
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  endDateValue: {
+    color: COLORS.white,
+    fontSize: sf(14),
+    fontWeight: '700',
+    marginTop: sv(2),
+  },
+  endDatePickerWrap: {
+    position: 'relative',
+    borderRadius: s(14),
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    backgroundColor: 'rgba(0,0,0,0.44)',
+    overflow: 'hidden',
+    marginBottom: sv(14),
+  },
+  endDateDoneBtn: {
+    position: 'absolute',
+    right: s(12),
+    bottom: sv(12),
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
+    backgroundColor: COLORS.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
   },
   durationLabel: {
     color: COLORS.textSecondary,
