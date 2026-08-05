@@ -1,5 +1,11 @@
-import { logger } from '../../../lib/logger';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { logger } from "../../../lib/logger";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Text,
   StyleSheet,
@@ -8,45 +14,55 @@ import {
   ActivityIndicator,
   Image,
   Platform,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 
-import FeedbackHero from '../components/FeedbackHero';
-import FeedbackTypeCards from '../components/FeedbackTypeCards';
-import FeedbackTextInputCard from '../components/FeedbackTextInputCard';
-import FeedbackImportanceCircles from '../components/FeedbackImportanceCircles';
-import FeedbackImageUploadCard from '../components/FeedbackImageUploadCard';
-import FeedbackInfoCards from '../components/FeedbackInfoCards';
-import FeedbackSendButton from '../components/FeedbackSendButton';
-import { useFeedbackForm } from '../hooks/useFeedbackForm';
-import { COLORS } from '../../../constants/colors';
-import { preloadFeedbackImageAssets } from '../../../constants/toolAssets';
-import { s, sv, sf } from '../../../constants/layout';
-import { useOnboarding } from '../../onboarding/context/OnboardingContext';
+import FeedbackHero from "../components/FeedbackHero";
+import FeedbackTypeCards from "../components/FeedbackTypeCards";
+import FeedbackTextInputCard from "../components/FeedbackTextInputCard";
+import FeedbackImportanceCircles from "../components/FeedbackImportanceCircles";
+import FeedbackImageUploadCard from "../components/FeedbackImageUploadCard";
+import FeedbackInfoCards from "../components/FeedbackInfoCards";
+import FeedbackSendButton from "../components/FeedbackSendButton";
+import ImageLightboxModal from "../../../components/ImageLightboxModal";
+import { useFeedbackForm } from "../hooks/useFeedbackForm";
+import { COLORS } from "../../../constants/colors";
+import { preloadFeedbackImageAssets } from "../../../constants/toolAssets";
+import { s, sv, sf } from "../../../constants/layout";
+import { useOnboarding } from "../../onboarding/context/OnboardingContext";
 
-const GROW_LOGO_HEADER = require('../../../assets/images/grow_banner_lossless.webp');
+const GROW_LOGO_HEADER = require("../../../assets/images/grow_banner_lossless.webp");
 const FEEDBACK_TOUR_SCROLL_Y = sv(255);
 const FEEDBACK_TOUR_CONTENT_OFFSET = { x: 0, y: FEEDBACK_TOUR_SCROLL_Y };
- 
+
 export default function FeedbackScreen() {
   const [feedbackAssetsReady, setFeedbackAssetsReady] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const scrollRef = useRef(null);
   const insets = useSafeAreaInsets();
   const bottomContentPadding = sv(72) + Math.max(insets.bottom, 0);
-  const footerSafeStyle = Platform.OS === 'android'
-    ? { marginTop: -sv(24), marginBottom: sv(24) + Math.max(insets.bottom, 0) }
-    : { marginBottom: sv(14) + Math.max(insets.bottom, 0) };
+  const footerSafeStyle =
+    Platform.OS === "android"
+      ? {
+          marginTop: -sv(24),
+          marginBottom: sv(24) + Math.max(insets.bottom, 0),
+        }
+      : { marginBottom: sv(14) + Math.max(insets.bottom, 0) };
   const { isTourActive, currentStep } = useOnboarding();
-  const isFeedbackTutorialStep = isTourActive && currentStep?.id === 'feedback';
-  const shouldHideAndroidTutorialReset = Platform.OS === 'android' && isTourActive && !isFeedbackTutorialStep;
+  const isFeedbackTutorialStep = isTourActive && currentStep?.id === "feedback";
+  const shouldHideAndroidTutorialReset =
+    Platform.OS === "android" && isTourActive && !isFeedbackTutorialStep;
 
   useEffect(() => {
     let mounted = true;
 
     preloadFeedbackImageAssets()
       .catch((err) => {
-        logger.warn('Feedback image preloading failed', err);
+        logger.warn("Feedback image preloading failed", err);
       })
       .finally(() => {
         if (mounted) {
@@ -58,7 +74,6 @@ export default function FeedbackScreen() {
       mounted = false;
     };
   }, []);
-
 
   useLayoutEffect(() => {
     if (!feedbackAssetsReady) return;
@@ -72,7 +87,7 @@ export default function FeedbackScreen() {
           y: FEEDBACK_TOUR_SCROLL_Y,
           animated: false,
         });
-      } else if (Platform.OS === 'android') {
+      } else if (Platform.OS === "android") {
         scrollRef.current?.scrollTo({ y: 0, animated: false });
       }
 
@@ -91,7 +106,7 @@ export default function FeedbackScreen() {
       });
 
       return () => cancelAnimationFrame(frame);
-    }, [feedbackAssetsReady, isTourActive])
+    }, [feedbackAssetsReady, isTourActive]),
   );
 
   const {
@@ -101,7 +116,7 @@ export default function FeedbackScreen() {
     setSelectedImportance,
     text,
     setText,
-    selectedImage,
+    selectedImages,
     sending,
     sendError,
     handlePickImage,
@@ -109,7 +124,7 @@ export default function FeedbackScreen() {
     handleSend,
     clearStatus,
   } = useFeedbackForm();
- 
+
   if (!feedbackAssetsReady) {
     return (
       <SafeAreaView style={styles.container}>
@@ -125,9 +140,18 @@ export default function FeedbackScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         ref={scrollRef}
-        style={shouldHideAndroidTutorialReset ? styles.hiddenTutorialContent : undefined}
-        contentOffset={isFeedbackTutorialStep ? FEEDBACK_TOUR_CONTENT_OFFSET : undefined}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomContentPadding }]}
+        style={
+          shouldHideAndroidTutorialReset
+            ? styles.hiddenTutorialContent
+            : undefined
+        }
+        contentOffset={
+          isFeedbackTutorialStep ? FEEDBACK_TOUR_CONTENT_OFFSET : undefined
+        }
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: bottomContentPadding },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Image
@@ -137,9 +161,9 @@ export default function FeedbackScreen() {
         />
 
         <FeedbackHero />
- 
+
         <Text style={styles.sectionTitle}>WAS MÖCHTEST DU FEEDBACK GEBEN?</Text>
- 
+
         <FeedbackTypeCards
           selectedType={selectedType}
           onSelect={(type) => {
@@ -147,9 +171,9 @@ export default function FeedbackScreen() {
             clearStatus();
           }}
         />
- 
+
         <Text style={styles.sectionTitle}>WIE KÖNNEN WIR GROW VERBESSERN?</Text>
- 
+
         <FeedbackTextInputCard
           value={text}
           onChangeText={(value) => {
@@ -157,12 +181,12 @@ export default function FeedbackScreen() {
             clearStatus();
           }}
         />
- 
+
         <Text style={styles.sectionTitle}>WIE WICHTIG IST DIR DAS?</Text>
         <Text style={styles.smallDescription}>
           Deine Einschätzung hilft uns zu priorisieren.
         </Text>
- 
+
         <FeedbackImportanceCircles
           selectedImportance={selectedImportance}
           onSelect={(value) => {
@@ -170,52 +194,58 @@ export default function FeedbackScreen() {
             clearStatus();
           }}
         />
- 
-        <Text style={styles.sectionTitle}>SCREENSHOT HINZUFÜGEN (OPTIONAL)</Text>
+
+        <Text style={styles.sectionTitle}>
+          SCREENSHOT HINZUFÜGEN (OPTIONAL)
+        </Text>
         <Text style={styles.smallDescription}>
           Ein Bild sagt mehr als 1.000 Worte.
         </Text>
- 
+
         <FeedbackImageUploadCard
-          selectedImage={selectedImage}
+          selectedImages={selectedImages}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}
+          onOpenImage={setLightboxIndex}
         />
 
         <FeedbackInfoCards />
- 
-        <FeedbackSendButton
-          sending={sending}
-          onPress={handleSend}
-        />
- 
+
+        <FeedbackSendButton sending={sending} onPress={handleSend} />
+
         {sendError && <Text style={styles.errorText}>{sendError}</Text>}
- 
+
         <Text style={[styles.footerText, footerSafeStyle]}>
           Danke, dass du Grow besser machst. 🙏
         </Text>
       </ScrollView>
+      <ImageLightboxModal
+        visible={lightboxIndex !== null}
+        imageUrls={selectedImages.map((image) => image.uri)}
+        initialIndex={lightboxIndex ?? 0}
+        onClose={() => setLightboxIndex(null)}
+      />
     </SafeAreaView>
   );
 }
- 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
   },
   loadingWrap: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: s(24),
   },
   loadingText: {
     color: COLORS.textDim,
     fontSize: sf(13),
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: sv(12),
-    textAlign: 'center',
+    textAlign: "center",
   },
   hiddenTutorialContent: {
     opacity: 0,
@@ -226,7 +256,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   logoImage: {
-    alignSelf: 'center',
+    alignSelf: "center",
     width: s(185),
     height: sv(42),
     marginTop: sv(4),
@@ -234,7 +264,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.white,
     fontSize: sf(13),
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.8,
     marginBottom: sv(12),
     marginTop: sv(4),
@@ -245,12 +275,12 @@ const styles = StyleSheet.create({
     marginBottom: sv(14),
   },
   footerText: {
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.textSecondary,
     fontSize: sf(12),
   },
   errorText: {
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.error,
     fontSize: sf(13),
     lineHeight: 18,

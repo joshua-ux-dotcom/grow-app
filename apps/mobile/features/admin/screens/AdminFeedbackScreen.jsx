@@ -1,5 +1,5 @@
-import { logger } from '../../../lib/logger';
-import { useCallback, useRef, useState } from 'react';
+import { logger } from "../../../lib/logger";
+import { useCallback, useRef, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -8,24 +8,33 @@ import {
   Text,
   View,
   Alert,
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { router } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { router } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
-import { COLORS } from '../../../constants/colors';
-import { s, sv, sf } from '../../../constants/layout';
-import { loadAdminFeedbackList, deleteAdminFeedback } from '../services/adminFeedback';
+import { COLORS } from "../../../constants/colors";
+import { s, sv, sf } from "../../../constants/layout";
+import {
+  loadAdminFeedbackList,
+  deleteAdminFeedback,
+} from "../services/adminFeedback";
 
-import AdminFeedbackCard from '../components/AdminFeedbackCard';
-import AdminLoadingState from '../components/AdminLoadingState';
-import AdminEmptyState from '../components/AdminEmptyState';
+import AdminFeedbackCard from "../components/AdminFeedbackCard";
+import AdminLoadingState from "../components/AdminLoadingState";
+import AdminEmptyState from "../components/AdminEmptyState";
+import ImageLightboxModal from "../../../components/ImageLightboxModal";
 
 export default function AdminFeedbackScreen() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorText, setErrorText] = useState(null);
+  const [lightbox, setLightbox] = useState({
+    urls: [],
+    index: 0,
+    visible: false,
+  });
   const loadRequestIdRef = useRef(0);
   const deletingFeedbackIdsRef = useRef(new Set());
 
@@ -50,12 +59,12 @@ export default function AdminFeedbackScreen() {
     } catch (error) {
       if (loadRequestIdRef.current !== requestId) return;
 
-      logger.debug('Fehler beim Laden der Admin-Feedbacks:', error);
+      logger.debug("Fehler beim Laden der Admin-Feedbacks:", error);
 
-      if (String(error.message ?? '').includes('Not allowed')) {
-        setErrorText('Kein Zugriff auf diese Feedback-Übersicht.');
+      if (String(error.message ?? "").includes("Not allowed")) {
+        setErrorText("Kein Zugriff auf diese Feedback-Übersicht.");
       } else {
-        setErrorText('Feedbacks konnten nicht geladen werden.');
+        setErrorText("Feedbacks konnten nicht geladen werden.");
       }
     } finally {
       if (loadRequestIdRef.current === requestId) {
@@ -66,43 +75,41 @@ export default function AdminFeedbackScreen() {
   }, []);
 
   const handleDeleteFeedback = useCallback((feedback) => {
-    if (!feedback?.id || deletingFeedbackIdsRef.current.has(feedback.id)) return;
+    if (!feedback?.id || deletingFeedbackIdsRef.current.has(feedback.id))
+      return;
 
     Alert.alert(
-      'Feedback löschen?',
-      'Dieses Feedback wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.',
+      "Feedback löschen?",
+      "Dieses Feedback wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
       [
         {
-          text: 'Abbrechen',
-          style: 'cancel',
+          text: "Abbrechen",
+          style: "cancel",
         },
         {
-          text: 'Löschen',
-          style: 'destructive',
+          text: "Löschen",
+          style: "destructive",
           onPress: async () => {
             if (deletingFeedbackIdsRef.current.has(feedback.id)) return;
 
             deletingFeedbackIdsRef.current.add(feedback.id);
 
             try {
-              await deleteAdminFeedback(feedback.id);
+              await deleteAdminFeedback(feedback.id, feedback.imagePaths);
 
               setFeedbacks((prevFeedbacks) =>
-                prevFeedbacks.filter((item) => item.id !== feedback.id)
+                prevFeedbacks.filter((item) => item.id !== feedback.id),
               );
             } catch (error) {
-              logger.debug('Fehler beim Löschen des Feedbacks:', error);
+              logger.debug("Fehler beim Löschen des Feedbacks:", error);
 
-              Alert.alert(
-                'Fehler',
-                'Feedback konnte nicht gelöscht werden.'
-              );
+              Alert.alert("Fehler", "Feedback konnte nicht gelöscht werden.");
             } finally {
               deletingFeedbackIdsRef.current.delete(feedback.id);
             }
           },
         },
-      ]
+      ],
     );
   }, []);
 
@@ -113,11 +120,11 @@ export default function AdminFeedbackScreen() {
       return () => {
         loadRequestIdRef.current += 1;
       };
-    }, [loadFeedbacks])
+    }, [loadFeedbacks]),
   );
 
   if (isLoading) {
-    return <AdminLoadingState text="Feedbacks werden geladen..." />
+    return <AdminLoadingState text="Feedbacks werden geladen..." />;
   }
 
   return (
@@ -172,9 +179,22 @@ export default function AdminFeedbackScreen() {
 
         {!errorText &&
           feedbacks.map((feedback) => (
-            <AdminFeedbackCard key={feedback.id} feedback={feedback} onDelete={handleDeleteFeedback} />
+            <AdminFeedbackCard
+              key={feedback.id}
+              feedback={feedback}
+              onDelete={handleDeleteFeedback}
+              onOpenImage={(urls, index) =>
+                setLightbox({ urls, index, visible: true })
+              }
+            />
           ))}
       </ScrollView>
+      <ImageLightboxModal
+        visible={lightbox.visible}
+        imageUrls={lightbox.urls}
+        initialIndex={lightbox.index}
+        onClose={() => setLightbox((value) => ({ ...value, visible: false }))}
+      />
     </View>
   );
 }
@@ -190,8 +210,8 @@ const styles = StyleSheet.create({
     paddingBottom: sv(34),
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: s(14),
     marginBottom: sv(22),
   },
@@ -199,11 +219,11 @@ const styles = StyleSheet.create({
     width: s(42),
     height: s(42),
     borderRadius: s(21),
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTextBox: {
     flex: 1,
@@ -211,14 +231,14 @@ const styles = StyleSheet.create({
   topLabel: {
     color: COLORS.softGold,
     fontSize: sf(11),
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 1.3,
     marginBottom: sv(4),
   },
   title: {
     color: COLORS.white,
     fontSize: sf(28),
-    fontWeight: '900',
+    fontWeight: "900",
   },
   subtitle: {
     color: COLORS.textSecondary,
@@ -228,7 +248,7 @@ const styles = StyleSheet.create({
   },
   summaryBox: {
     borderRadius: s(20),
-    backgroundColor: 'rgba(255,255,255,0.045)',
+    backgroundColor: "rgba(255,255,255,0.045)",
     borderWidth: 1,
     borderColor: COLORS.goldBorder,
     padding: s(18),
@@ -237,19 +257,19 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: COLORS.white,
     fontSize: sf(34),
-    fontWeight: '900',
+    fontWeight: "900",
   },
   summaryLabel: {
     color: COLORS.textSecondary,
     fontSize: sf(14),
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: sv(2),
   },
   errorBox: {
     borderRadius: s(16),
-    backgroundColor: 'rgba(255,80,80,0.08)',
+    backgroundColor: "rgba(255,80,80,0.08)",
     borderWidth: 1,
-    borderColor: 'rgba(255,80,80,0.25)',
+    borderColor: "rgba(255,80,80,0.25)",
     padding: s(14),
     marginBottom: sv(18),
   },
@@ -261,6 +281,6 @@ const styles = StyleSheet.create({
   retryText: {
     color: COLORS.softGold,
     fontSize: sf(14),
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });

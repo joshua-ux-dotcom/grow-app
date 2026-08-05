@@ -1,22 +1,24 @@
-import React from 'react';
+import React from "react";
 import {
   Image,
   ImageBackground,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { COLORS } from '../../../constants/colors';
-import { s, sv, sf } from '../../../constants/layout';
+import { COLORS } from "../../../constants/colors";
+import { s, sv, sf } from "../../../constants/layout";
 
-const uploadFieldImage = require('../../../assets/feedback/feedback-upload-field.webp');
+const uploadFieldImage = require("../../../assets/feedback/feedback-upload-field.webp");
 
 export default function FeedbackImageUploadCard({
-  selectedImage,
+  selectedImages,
   onPickImage,
   onRemoveImage,
+  onOpenImage,
 }) {
   return (
     <View style={styles.wrap}>
@@ -33,31 +35,43 @@ export default function FeedbackImageUploadCard({
         >
           <View style={styles.textLayer} pointerEvents="none">
             <Text style={styles.uploadTitle}>
-              {selectedImage ? 'Bild ändern' : 'Bild hinzufügen'}
+              {selectedImages.length
+                ? "Weitere Bilder hinzufügen"
+                : "Bilder hinzufügen"}
             </Text>
           </View>
         </ImageBackground>
       </TouchableOpacity>
 
-      {selectedImage && (
-        <View style={styles.previewWrap}>
-          <Image
-            source={{ uri: selectedImage.uri }}
-            style={styles.previewImage}
-            resizeMode="cover"
-          />
-
-          <View style={styles.previewFooter}>
-            <Text style={styles.previewText}>Bild ausgewählt</Text>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={onRemoveImage}
-              style={styles.removeButton}
-            >
-              <Text style={styles.removeText}>Entfernen</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      {selectedImages.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.previewRow}
+        >
+          {selectedImages.map((image, index) => (
+            <View key={image.assetId || image.uri} style={styles.thumbnailWrap}>
+              <TouchableOpacity
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`Bild ${index + 1} öffnen`}
+                onPress={() => onOpenImage(index)}
+              >
+                <Image
+                  source={{ uri: image.uri }}
+                  style={styles.previewImage}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Bild ${index + 1} entfernen`}
+                onPress={() => onRemoveImage(index)}
+                style={styles.removeButton}
+              >
+                <Text style={styles.removeText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
       )}
     </View>
   );
@@ -69,32 +83,32 @@ const styles = StyleSheet.create({
     marginBottom: sv(30),
   },
   uploadPressable: {
-    width: '100%',
+    width: "100%",
     height: sv(118),
-    overflow: 'visible',
+    overflow: "visible",
   },
   uploadBackground: {
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    justifyContent: "flex-end",
+    alignItems: "center",
     paddingBottom: sv(16),
     paddingHorizontal: s(20),
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   uploadImage: {
     borderRadius: s(18),
   },
   textLayer: {
-    alignItems: 'center',
+    alignItems: "center",
     transform: [{ translateY: sv(-10) }],
   },
   uploadTitle: {
     color: COLORS.lightGold,
     fontSize: sf(13),
     lineHeight: sv(17),
-    fontWeight: '700',
-    textAlign: 'center',
-    textShadowColor: 'rgba(212,175,55,0.55)',
+    fontWeight: "700",
+    textAlign: "center",
+    textShadowColor: "rgba(212,175,55,0.55)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
@@ -102,42 +116,46 @@ const styles = StyleSheet.create({
     color: COLORS.textDim,
     fontSize: sf(11),
     lineHeight: sv(14),
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
     marginTop: sv(2),
   },
-  previewWrap: {
+  previewRow: {
     marginTop: sv(12),
-    borderRadius: s(18),
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.035)',
   },
+  thumbnailWrap: { marginRight: s(10), position: "relative" },
   previewImage: {
-    width: '100%',
-    height: sv(170),
+    width: s(82),
+    height: s(82),
+    borderRadius: s(12),
   },
   previewFooter: {
     minHeight: sv(42),
     paddingHorizontal: s(14),
     paddingVertical: sv(10),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   previewText: {
     color: COLORS.textDim,
     fontSize: sf(12),
-    fontWeight: '600',
+    fontWeight: "600",
   },
   removeButton: {
-    paddingHorizontal: s(12),
-    paddingVertical: sv(7),
-    borderRadius: s(999),
-    backgroundColor: 'rgba(212,175,55,0.12)',
+    position: "absolute",
+    top: -s(5),
+    right: -s(5),
+    width: s(24),
+    height: s(24),
+    borderRadius: s(12),
+    backgroundColor: "#222",
+    alignItems: "center",
+    justifyContent: "center",
   },
   removeText: {
     color: COLORS.lightGold,
-    fontSize: sf(12),
-    fontWeight: '700',
+    fontSize: sf(18),
+    fontWeight: "700",
   },
 });
