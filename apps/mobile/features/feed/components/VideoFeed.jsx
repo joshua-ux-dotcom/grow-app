@@ -20,6 +20,7 @@ import { getSavedVideoIds, toggleVideoBookmark } from "../services/videos";
 import { getCurrentUserId } from "../../../services/authUser";
 import { logger } from "../../../lib/logger";
 
+const GROW_LOGO_HEADER = require("../../../assets/images/grow_banner_lossless.webp");
 const { height } = Dimensions.get("window");
 const VIDEO_READY_TIMEOUT_MS = 6500;
 
@@ -574,6 +575,13 @@ export default function VideoFeed({
         />
       )}
 
+      <Image
+        source={GROW_LOGO_HEADER}
+        style={styles.logoImage}
+        resizeMode="contain"
+        pointerEvents="none"
+      />
+
       {showBackButton && (
         <Pressable style={styles.backButton} onPress={handleBackPress}>
           <Feather name="chevron-left" size={26} color={COLORS.softGold} />
@@ -597,6 +605,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  logoImage: {
+    position: "absolute",
+    top: sv(61),
+    alignSelf: "center",
+    width: s(185),
+    height: sv(42),
+    zIndex: 10,
   },
   backButton: {
     position: "absolute",

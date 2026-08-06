@@ -8,8 +8,6 @@ import TourTarget from '../../onboarding/components/TourTarget';
 import VideoRatingSlider from './VideoRatingSlider';
 import { GROW_POINTS_ICON } from '../../../constants/toolAssets';
 
-const GROW_LOGO_HEADER = require('../../../assets/images/grow_banner_lossless.webp');
-
 export default function VideoOverlay({
   saved = false,
   onToggleSaved = () => {},
@@ -84,12 +82,6 @@ export default function VideoOverlay({
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      <Image
-        source={GROW_LOGO_HEADER}
-        style={styles.logoImage}
-        resizeMode="contain"
-      />
-
       <View style={[styles.rightSide, { top: rightSideTop }]} pointerEvents="box-none">
         <TourTarget
           id={isActive ? 'feed-actions' : null}
@@ -172,14 +164,6 @@ export default function VideoOverlay({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-
-  logoImage: {
-    position: 'absolute',
-    top: sv(61),
-    alignSelf: 'center',
-    width: s(185),
-    height: sv(42),
   },
 
   rightSide: {
