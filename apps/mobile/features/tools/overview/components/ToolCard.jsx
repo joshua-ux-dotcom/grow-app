@@ -128,7 +128,7 @@ export default function ToolCard({
             </Text>
 
             {!!description && !isSmall && (
-              <Text style={styles.imageDescription} numberOfLines={compact ? 1 : 2}>
+              <Text style={styles.imageDescription} numberOfLines={2}>
                 {description}
               </Text>
             )}
