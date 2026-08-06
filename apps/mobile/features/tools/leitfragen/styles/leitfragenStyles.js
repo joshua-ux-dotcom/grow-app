@@ -371,30 +371,10 @@ export const styles = StyleSheet.create({
     lineHeight: sf(19),
     textAlignVertical: 'top',
   },
-  leitfragenInputWrap: {
-    position: 'relative',
+  leitfragenInput: {
     width: '100%',
     minHeight: sv(120),
     marginBottom: sv(14),
-  },
-  leitfragenInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  leitfragenInputMeasure: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    opacity: 0,
-    zIndex: -1,
-    paddingHorizontal: s(12),
-    paddingVertical: sv(10),
-  },
-  leitfragenInputMeasureText: {
-    color: COLORS.textSecondary,
-    fontSize: sf(13),
-    lineHeight: sf(19),
   },
   checkboxRow: {
     flexDirection: 'row',

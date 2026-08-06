@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, ActivityIndicator } from 'react-native';
 
 import { COLORS } from '../../../../constants/colors';
@@ -7,7 +7,7 @@ import { sv } from '../../../../constants/layout';
 import { styles } from '../styles/leitfragenStyles';
 
 const LEITFRAGEN_INPUT_MIN_HEIGHT = sv(120);
-const LEITFRAGEN_INPUT_VERTICAL_SPACE = sv(24);
+const LEITFRAGEN_INPUT_HEIGHT_BUFFER = sv(2);
 
 export default function LeitfragenQuestionPage({
   questionPage,
@@ -24,17 +24,14 @@ export default function LeitfragenQuestionPage({
   const exampleAnswer = questionPage?.exampleAnswer?.trim();
   const [inputHeight, setInputHeight] = useState(LEITFRAGEN_INPUT_MIN_HEIGHT);
 
-  useEffect(() => {
-    setInputHeight(LEITFRAGEN_INPUT_MIN_HEIGHT);
-  }, [questionPage?.key]);
 
-  const measuredAnswerText = answer ? `${answer}\u200B` : ' ';
+  const handleContentSizeChange = (event) => {
+    const contentHeight = event?.nativeEvent?.contentSize?.height ?? 0;
+    if (!Number.isFinite(contentHeight) || contentHeight <= 0) return;
 
-  const handleMeasuredTextLayout = (event) => {
-    const measuredTextHeight = event?.nativeEvent?.layout?.height ?? 0;
     const nextHeight = Math.max(
       LEITFRAGEN_INPUT_MIN_HEIGHT,
-      Math.ceil(measuredTextHeight) + LEITFRAGEN_INPUT_VERTICAL_SPACE,
+      Math.ceil(contentHeight) + LEITFRAGEN_INPUT_HEIGHT_BUFFER,
     );
 
     setInputHeight((currentHeight) => {
@@ -60,33 +57,18 @@ export default function LeitfragenQuestionPage({
       )}
 
       <Text style={styles.answerLabel}>Deine Antwort</Text>
-      <View style={[styles.leitfragenInputWrap, { height: inputHeight }]}>
-        <View
-          pointerEvents="none"
-          style={styles.leitfragenInputMeasure}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <Text
-            onLayout={handleMeasuredTextLayout}
-            style={styles.leitfragenInputMeasureText}
-          >
-            {measuredAnswerText}
-          </Text>
-        </View>
-
-        <TextInput
-          value={answer}
-          onChangeText={onChangeAnswer}
-          placeholder={questionPage?.placeholder}
-          placeholderTextColor={COLORS.textFaint}
-          multiline
-          scrollEnabled={false}
-          {...inputGestureProps}
-          onTouchEnd={(event) => onTextInputTouchEnd(event, false)}
-          style={[styles.input, styles.leitfragenInput]}
-        />
-      </View>
+      <TextInput
+        value={answer}
+        onChangeText={onChangeAnswer}
+        onContentSizeChange={handleContentSizeChange}
+        placeholder={questionPage?.placeholder}
+        placeholderTextColor={COLORS.textFaint}
+        multiline
+        scrollEnabled={false}
+        {...inputGestureProps}
+        onTouchEnd={(event) => onTextInputTouchEnd(event, false)}
+        style={[styles.input, styles.leitfragenInput, { height: inputHeight }]}
+      />
 
       {exampleAnswer ? (
         <View style={styles.exampleCard}>
