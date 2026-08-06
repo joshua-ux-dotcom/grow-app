@@ -153,6 +153,8 @@ export default function FeedbackScreen() {
           { paddingBottom: bottomContentPadding },
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
         <Image
           source={GROW_LOGO_HEADER}
